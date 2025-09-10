@@ -1,15 +1,83 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["banking"]
+}
+
+model Role {
+  roleId Int    @id @default(autoincrement())
+  name   String @unique
+  User   User[]
+
+  @@schema("banking")
+}
+
+model User {
+  userId    Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  firstName String
+  lastName  String
+  city      String
+  address   String
+  pincode   String
+  phoneNo   String
+  roleId    Int
+  createdAt DateTime  @default(now())
+  Account   Account[]
+  Role      Role      @relation(fields: [roleId], references: [roleId])
+  lastLogin  DateTime? // nullable, updated when user logs in
+
+  @@schema("banking")
+}
+
+
+model Account {
+  accountId     Int           @id @default(autoincrement())
+  accNo String        @unique
+  acctype       String
+  balance       Float         @default(0.0)
+  userId        Int
+  branchId      Int
+  createdAt     DateTime      @default(now())
+  User          User          @relation(fields: [userId], references: [userId])
+  Branch        Branch        @relation(fields: [branchId], references: [branchId])
+  Transaction   Transaction[]
+
+@@unique([accountId, accNo])
+  @@schema("banking")
+}
+
+model Transaction {
+  transactionId BigInt       @id @default(autoincrement())
+  accountId     Int
+  accNo         String    // New column, same as in Account
+  branchId      Int
+  amount        Float
+  trxtype       String     // credit or debit
+  mode          String     // cash, cheque, UPI, card, etc.
+  narration     String     // purpose / source / destination
+  refNo         String     // sender/receiver/merchant reference code
+  fromTo        String    // New column: who money was sent to or received from
+  createdAt     DateTime   @default(now())
+  Account       Account    @relation(fields: [accountId, accNo], references: [accountId, accNo])
+  
+  Branch        Branch     @relation(fields: [branchId], references: [branchId])
+
+  @@schema("banking")
+}
+
+model Branch {
+  branchId     Int            @id @default(autoincrement())
+  city         String
+  ifscCode     String         @unique
+  address      String
+  Account      Account[]
+  Transaction  Transaction[]
+
+  @@schema("banking")
 }
