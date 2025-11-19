@@ -1,0 +1,395 @@
+"use client";
+import React, { useEffect, useRef, useState } from "react";
+import Chart from "chart.js/auto";
+import { supabase } from "../../utils/supabaseClient"; // client-side supabase
+
+// --- Custom CSS Styles (same as your original) ---
+const customStyles = `
+  body { font-family: 'Inter', sans-serif; background-color: #f4f7f9; }
+  .sidebar { width: 220px; background-color: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-height: 100vh; }
+  .sidebar-item { padding: 10px 20px; cursor: pointer; transition: all 0.2s ease-in-out; display:flex; align-items:center; font-size:14px; }
+  .sidebar-item:hover, .sidebar-item.active { background-color: #f0f4f7; border-left: 4px solid #3b82f6; color: #3b82f6; }
+  .sidebar-item-icon { color: #9ca3af; transition: color 0.2s ease-in-out; width: 20px; height: 20px; margin-right: 12px; }
+  .card { background-color: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .btn-primary { background-color: #3b82f6; color: #fff; padding: 10px 20px; border-radius:6px; font-weight:500; }
+  .btn-secondary { background-color:#fff; color:#3b82f6; padding:10px 20px; border-radius:6px; border:1px solid #d1d5db; font-weight:500; }
+  .status-badge { display:inline-block; padding:3px 10px; border-radius:9999px; font-size:12px; font-weight:500; }
+  .status-badge.completed { background-color:#d1fae5; color:#059669; }
+  .status-badge.pending { background-color:#fef3c7; color:#d97706; }
+  .status-badge.failed { background-color:#fee2e2; color:#ef4444; }
+  .other-links { transition: transform .3s ease-out, opacity .3s ease-out; transform: translateX(0); opacity:1; }
+  .other-links.hidden-toggle { transform: translateX(-100%); opacity:0; position:absolute; left:220px; width:220px; overflow:hidden; }
+  .rotated-icon { transform: rotate(180deg); transition: transform .3s ease-in-out; }
+
+  @media (max-width:768px) {
+    .sidebar { width: 60px; }
+    .sidebar-text { display:none; }
+    .cards-grid { grid-template-columns: 1fr; }
+    .table-container { overflow-x:auto; }
+    .other-links.hidden-toggle { left:60px; }
+  }
+`;
+
+// ---------- Component ----------
+const FinWinDashboard: React.FC = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // overview can be null until loaded
+  const [overview, setOverview] = useState<{
+    username?: string | null;
+    accountBalance: number;
+    recentTransactions: number;
+    upcomingBills: number;
+    totalSavings: number;
+    features?: { transactionsAvailable?: boolean; billsAvailable?: boolean; savingsAvailable?: boolean; accountTableAvailable?: boolean };
+  } | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const chartRef = useRef<HTMLCanvasElement | null>(null);
+  const chartInstance = useRef<any | null>(null);
+
+  const toggleSidebarLinks = () => setIsSidebarOpen(s => !s);
+
+  // --- New: balance preview state/timer ---
+  // showBalancePreview controls whether the actual amount is shown in the BIG numeric area
+  const [showBalancePreview, setShowBalancePreview] = useState(false);
+  const previewTimerRef = useRef<number | null>(null);
+
+  const revealBalanceFor10s = () => {
+    // restart timer if already running
+    if (previewTimerRef.current) {
+      window.clearTimeout(previewTimerRef.current);
+    }
+
+    setShowBalancePreview(true);
+    previewTimerRef.current = window.setTimeout(() => {
+      setShowBalancePreview(false);
+      previewTimerRef.current = null;
+    }, 1000);
+  };
+
+  useEffect(() => {
+    // cleanup on unmount
+    return () => {
+      if (previewTimerRef.current) {
+        window.clearTimeout(previewTimerRef.current);
+        previewTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Chart setup (kept as you had it)
+  useEffect(() => {
+    if (!chartRef.current) return;
+    if (chartInstance.current) chartInstance.current.destroy();
+    const ctx = chartRef.current.getContext("2d");
+    if (!ctx) return;
+
+    chartInstance.current = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+        datasets: [
+          { label: "Expenses", data: [5000,6500,5800,7000,6200,7500,8000,7800,6900,8100,7600,8900], borderColor: "#22c55e", backgroundColor: "rgba(34,197,94,0.2)", fill:true, tension:0.4 },
+          { label: "Income",   data: [7500,8000,7200,8500,7900,8800,9200,9000,8500,9500,9100,10000], borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.2)", fill:true, tension:0.4 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context: any) {
+                let label = context.dataset.label || "";
+                if (label) label += ": ";
+                if (context.parsed?.y != null) label += new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(context.parsed.y);
+                return label;
+              }
+            }
+          },
+          legend: { display: false }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: {
+            border: { dash: [5,5] },
+            grid: { color: "#e5e7eb" },
+            ticks: { callback: (v: string|number) => "$" + (Number(v)/1000) + "k" }
+          }
+        }
+      }
+    });
+
+    return () => { if (chartInstance.current) chartInstance.current.destroy(); };
+  }, []);
+
+  // ---------- fetch overview ----------
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // get client session (Supabase v2)
+        const { data } = await supabase.auth.getSession();
+        // v2 returns { data: { session } }
+        const accessToken = data?.session?.access_token ?? null;
+
+        if (!accessToken) {
+          if (mounted) {
+            setError("Not authenticated. Please log in.");
+            // show safe default UX
+            setOverview({
+              username: null,
+              accountBalance: 0,
+              recentTransactions: 0,
+              upcomingBills: 0,
+              totalSavings: 0,
+              features: {}
+            });
+          }
+          return;
+        }
+
+        const res = await fetch("/api/overview", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json"
+          }
+        });
+
+        // try to parse even if not ok to surface backend message
+        const payload = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          const msg = payload?.error || `Failed to load overview (status ${res.status})`;
+          if (mounted) setError(msg);
+          return;
+        }
+
+        if (mounted) {
+          setOverview({
+            username: payload?.username ?? null,
+            accountBalance: Number(payload?.accountBalance ?? 0),
+            recentTransactions: Number(payload?.recentTransactions ?? 0),
+            upcomingBills: Number(payload?.upcomingBills ?? 0),
+            totalSavings: Number(payload?.totalSavings ?? 0),
+            features: payload?.features ?? {},
+          });
+        }
+      } catch (err) {
+        console.error("overview fetch error", err);
+        if (mounted) setError("Could not load dashboard");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, []);
+
+  const linksClass = `other-links ${isSidebarOpen ? "" : "hidden-toggle"}`;
+  const arrowClass = `${isSidebarOpen ? "rotated-icon" : ""}`;
+  const fmtCurrency = (v: number) =>
+    v.toLocaleString("en-IN", { style: "currency", currency: "INR" });
+
+
+  return (
+    <div className="flex">
+      <style>{customStyles}</style>
+
+      <aside className="sidebar flex flex-col items-center md:items-start p-4 md:p-6 sticky top-0 h-screen">
+        <div className="flex items-center space-x-2 md:space-x-4 mb-6">
+          <svg className="w-7 h-7 md:w-8 md:h-8 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/></svg>
+          <span className="text-lg md:text-xl font-bold text-gray-800 sidebar-text">FinWin</span>
+        </div>
+
+        <nav className="flex-grow w-full">
+          <ul>
+            <li id="dashboard-toggle" className="sidebar-item active" onClick={toggleSidebarLinks}>
+              <svg className="sidebar-item-icon" viewBox="0 0 24 24"><path d="M4 6h4v4H4zM10 6h4v4h-4zM4 12h4v4H4zM10 12h4v4h-4z"/></svg>
+              <span className="sidebar-text">Dashboard</span>
+              <svg id="toggle-arrow" className={`w-4 h-4 ml-auto ${arrowClass}`} viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </li>
+          </ul>
+
+          <div id="other-links" className={linksClass}>
+            <ul>
+              <li className="sidebar-item"><span className="sidebar-text">Transfer Money</span></li>
+              <li className="sidebar-item"><span className="sidebar-text">Pay Bills</span></li>
+              <li className="sidebar-item"><span className="sidebar-text">Analytics</span></li>
+              <li className="sidebar-item"><span className="sidebar-text">Accounts</span></li>
+              <li className="sidebar-item"><span className="sidebar-text">Transactions</span></li>
+              <li className="sidebar-item"><span className="sidebar-text">Support</span></li>
+            </ul>
+          </div>
+        </nav>
+
+        <div className="mt-auto hidden md:block w-full">
+          <div className="flex flex-col space-y-1 text-xs text-gray-500">
+            <a href="#" className="hover:underline">Company</a>
+            <a href="#" className="hover:underline">Support</a>
+            <a href="#" className="hover:underline">Legal</a>
+          </div>
+        </div>
+      </aside>
+
+      <main className="flex-grow p-6">
+        <header className="flex flex-col md:flex-row justify-between items-center mb-8 md:mb-10 space-y-3 md:space-y-0">
+          <div className="relative w-full md:w-auto">
+            <input type="text" placeholder="Search transactions, accounts..." className="w-full md:w-[320px] pl-9 pr-3 py-1.5 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8z"/></svg>
+          </div>
+
+          <div className="flex items-center space-x-4">
+        
+              <button className="relative text-gray-600 hover:text-blue-500">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
+                        </button>
+
+            <div className="flex space-x-2">
+           
+              <a href="/login"><button className="px-3 py-1 text-sm font-medium bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Logout</button></a>
+            </div>
+
+            <div style={{ fontWeight: 700 }} className="text-gray-800">
+              {loading ? "Loading..." : overview?.username ? ` ${overview.username}!` : "Welcome back!"}
+            </div>
+          </div>
+        </header>
+
+        {/* Top banner */}
+        <section className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white p-5 rounded-lg shadow">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-gray-300 flex items-center justify-center text-white font-bold">
+              {overview?.username ? overview.username[0]?.toUpperCase() : "U"}
+            </div>
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-800">{overview?.username ? `Welcome back, ${overview.username}!` : "Welcome back!"}</h1>
+              <p className="text-xs text-gray-500 mt-0.5">{new Date().toLocaleDateString()}</p>
+            </div>
+          </div>
+          <button className="btn-primary mt-3 md:mt-0">Quick Transfer</button>
+        </section>
+
+        {/* Overview cards */}
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-700 mb-5">Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 cards-grid">
+            <div className="card">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-medium text-gray-500">Account Balance</h3>
+              </div>
+
+              {/* BIG DISPLAY AREA: shows "Balance" (clickable) by default; shows amount for 10s after click */}
+              <div>
+                <p
+                  role="button"
+                  tabIndex={0}
+                  onClick={revealBalanceFor10s}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") revealBalanceFor10s(); }}
+                  className="text-2xl font-bold text-gray-800 cursor-pointer select-none"
+                  title="Check Balance"
+                  aria-pressed={showBalancePreview}
+                >
+                  {showBalancePreview ? (overview ? fmtCurrency(overview.accountBalance) : "₹0.00") : "Balance"}
+                </p>
+              </div>
+
+              <a href="#" className="text-xs text-blue-500 hover:underline mt-3 block">View details</a>
+            </div>
+
+            <div className="card">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-medium text-gray-500">Recent Transactions</h3>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{overview ? overview.recentTransactions : 0}</p>
+              <p className="text-xs text-gray-500 mt-0.5">Due in 7 days</p>
+              {!overview?.features?.transactionsAvailable && <p className="text-xs text-gray-400 mt-1">Feature coming soon</p>}
+              <a href="#" className="text-xs text-blue-500 hover:underline mt-3 block">View all transactions</a>
+            </div>
+
+            <div className="card">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-medium text-gray-500">Upcoming Bills</h3>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{overview ? overview.upcomingBills : 0}</p>
+              <p className="text-xs text-yellow-500 mt-0.5">Due in 7 days</p>
+              {!overview?.features?.billsAvailable && <p className="text-xs text-gray-400 mt-1">Feature coming soon</p>}
+              <a href="#" className="text-xs text-blue-500 hover:underline mt-3 block">View details</a>
+            </div>
+
+            <div className="card">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-medium text-gray-500">Total Savings</h3>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{overview ? fmtCurrency(overview.totalSavings) : "₹0.00"}</p>
+
+              {!overview?.features?.savingsAvailable && <p className="text-xs text-gray-400 mt-1">Feature coming soon</p>}
+              <a href="#" className="text-xs text-blue-500 hover:underline mt-3 block">View details</a>
+            </div>
+          </div>
+        </section>
+
+        {/* Quick actions + chart */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+          <div className="card">
+            <h2 className="text-lg font-semibold text-gray-700 mb-3">Quick Actions</h2>
+            <p className="text-xs text-gray-500 mb-3">Perform common banking tasks easily.</p>
+            <div className="flex flex-col space-y-2">
+              <button className="btn-primary">Send Money</button>
+              <button className="btn-secondary">Pay Bills</button>
+              <button className="btn-secondary">Manage Accounts</button>
+            </div>
+          </div>
+
+          <div className="card">
+            <h2 className="text-lg font-semibold text-gray-700 mb-3">Monthly Flow</h2>
+            <p className="text-xs text-gray-500 mb-3">Expenses vs Income trends.</p>
+            <div className="h-56">
+              <canvas id="monthlyFlowChart" ref={chartRef}></canvas>
+            </div>
+            <div className="mt-4 flex justify-between items-center text-xs text-gray-500">
+              <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span><span>Income</span></div>
+              <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span><span>Expenses</span></div>
+            </div>
+          </div>
+        </section>
+
+        {/* Recent Transactions table (static for now) */}
+        <section className="card">
+          <h2 className="text-lg font-semibold text-gray-700 mb-5">Recent Transactions</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left whitespace-nowrap">
+              <thead>
+                <tr className="text-gray-500 text-xs font-medium border-b border-gray-200">
+                  <th className="p-3">DATE</th>
+                  <th className="p-3">TYPE</th>
+                  <th className="p-3">AMOUNT</th>
+                  <th className="p-3">MODE</th>
+                  <th className="p-3">FROM/TO</th>
+                  <th className="p-3">STATUS</th>
+                  <th className="p-3">DETAILS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* keep your static rows for now */}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+};
+
+export default FinWinDashboard;
