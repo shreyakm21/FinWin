@@ -1,7 +1,9 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import Chart from "chart.js/auto";
-import { supabase } from "../../utils/supabaseClient"; // client-side supabase
+import Link from "next/link";                     
+import { supabase } from "../../utils/supabaseClient";
+
 
 // --- Custom CSS Styles (same as your original) ---
 const customStyles = `
@@ -220,15 +222,20 @@ const FinWinDashboard: React.FC = () => {
           </ul>
 
           <div id="other-links" className={linksClass}>
-            <ul>
-              <li className="sidebar-item"><span className="sidebar-text">Transfer Money</span></li>
-              <li className="sidebar-item"><span className="sidebar-text">Pay Bills</span></li>
-              <li className="sidebar-item"><span className="sidebar-text">Analytics</span></li>
-              <li className="sidebar-item"><span className="sidebar-text">Accounts</span></li>
-              <li className="sidebar-item"><span className="sidebar-text">Transactions</span></li>
-              <li className="sidebar-item"><span className="sidebar-text">Support</span></li>
-            </ul>
+  <ul>
+    <li className="sidebar-item">
+      <Link href="/transaction" className="sidebar-text">
+        Transfer Money
+      </Link>
+    </li>
+    <li className="sidebar-item"><span className="sidebar-text">Pay Bills</span></li>
+    <li className="sidebar-item"><span className="sidebar-text">Analytics</span></li>
+    <li className="sidebar-item"><span className="sidebar-text">Accounts</span></li>
+    <li className="sidebar-item"><span className="sidebar-text">Transactions</span></li>
+    <li className="sidebar-item"><span className="sidebar-text">Support</span></li>
+  </ul>
           </div>
+
         </nav>
 
         <div className="mt-auto hidden md:block w-full">
@@ -269,17 +276,14 @@ const FinWinDashboard: React.FC = () => {
 
         {/* Top banner */}
         <section className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white p-5 rounded-lg shadow">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 md:w-14 md:h-14 rounded-full bg-gray-300 flex items-center justify-center text-white font-bold">
-              {overview?.username ? overview.username[0]?.toUpperCase() : "U"}
-            </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-800">{overview?.username ? `Welcome back, ${overview.username}!` : "Welcome back!"}</h1>
-              <p className="text-xs text-gray-500 mt-0.5">{new Date().toLocaleDateString()}</p>
-            </div>
-          </div>
-          <button className="btn-primary mt-3 md:mt-0">Quick Transfer</button>
-        </section>
+  <div className="flex items-center space-x-3">
+    {/* ... */}
+  </div>
+  <Link href="/transaction" className="btn-primary mt-3 md:mt-0">
+    Quick Transfer
+  </Link>
+</section>
+
 
         {/* Overview cards */}
         <section className="mb-8">
@@ -343,14 +347,17 @@ const FinWinDashboard: React.FC = () => {
         {/* Quick actions + chart */}
         <section className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
           <div className="card">
-            <h2 className="text-lg font-semibold text-gray-700 mb-3">Quick Actions</h2>
-            <p className="text-xs text-gray-500 mb-3">Perform common banking tasks easily.</p>
-            <div className="flex flex-col space-y-2">
-              <button className="btn-primary">Send Money</button>
-              <button className="btn-secondary">Pay Bills</button>
-              <button className="btn-secondary">Manage Accounts</button>
-            </div>
-          </div>
+  <h2 className="text-lg font-semibold text-gray-700 mb-3">Quick Actions</h2>
+  <p className="text-xs text-gray-500 mb-3">Perform common banking tasks easily.</p>
+  <div className="flex flex-col space-y-2">
+    <Link href="/transaction" className="btn-primary text-center">
+      Send Money
+    </Link>
+    <button className="btn-secondary">Pay Bills</button>
+    <button className="btn-secondary">Manage Accounts</button>
+  </div>
+</div>
+
 
           <div className="card">
             <h2 className="text-lg font-semibold text-gray-700 mb-3">Monthly Flow</h2>

@@ -187,7 +187,7 @@ export default function Signup() {
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-blue-800">BankFlow Sign-Up</h1>
+          <h1 className="text-3xl font-extrabold text-blue-800">Sign-Up</h1>
           <p className="text-gray-500 mt-2 text-sm">Fill in your details to create a new customer account.</p>
         </div>
 
