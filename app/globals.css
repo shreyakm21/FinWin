@@ -339,5 +339,59 @@ body {
     gap: 12px;
   }
 }
+/* ===== Review Page Summary Styles ===== */
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.summary-amount {
+  font-weight: 600;
+}
+
+.summary-ref {
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.summary-narration {
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.badge {
+  background: #e6f2ff;
+  color: #0066cc;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+.recent-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-top: 4px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  z-index: 9999;   /* 🔑 VERY IMPORTANT */
+}
+
+.recent-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.recent-item:hover {
+  background-color: #f1f5f9;
+}
+
+
 
 
