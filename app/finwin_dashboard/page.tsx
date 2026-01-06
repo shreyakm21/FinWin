@@ -3,6 +3,26 @@ import React, { useEffect, useRef, useState } from "react";
 import Chart from "chart.js/auto";
 import Link from "next/link";                     
 import { supabase } from "../../utils/supabaseClient";
+const loadSenderAccount = async () => {
+  const { data } = await supabase.auth.getSession();
+  const token = data?.session?.access_token;
+  if (!token) return;
+
+  const res = await fetch("/api/overview", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const json = await res.json();
+
+  // 🔥 IMPORTANT
+  if (json?.primaryAccNo) {
+    sessionStorage.setItem("senderAccNo", json.primaryAccNo);
+    console.log("✅ senderAccNo set:", json.primaryAccNo);
+  }
+};
+
 
 
 // --- Custom CSS Styles (same as your original) ---
@@ -127,74 +147,76 @@ const FinWinDashboard: React.FC = () => {
 
     return () => { if (chartInstance.current) chartInstance.current.destroy(); };
   }, []);
+   
+  // 🔄 REFRESH BALANCE AFTER TRANSACTION
+useEffect(() => {
+  const fetchLatestBalance = async () => {
+    const senderAccNo = sessionStorage.getItem("senderAccNo");
+
+    if (!senderAccNo) return;
+
+    const { data, error } = await supabase
+      .from("account")
+      .select("balance")
+      .eq("accNo", senderAccNo)
+      .single();
+
+    if (!error && data) {
+      setOverview(prev =>
+        prev
+          ? { ...prev, accountBalance: Number(data.balance) }
+          : prev
+      );
+    }
+  };
+
+  fetchLatestBalance();
+}, []);
 
   // ---------- fetch overview ----------
   useEffect(() => {
-    let mounted = true;
+  let mounted = true;
 
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  (async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        // get client session (Supabase v2)
-        const { data } = await supabase.auth.getSession();
-        // v2 returns { data: { session } }
-        const accessToken = data?.session?.access_token ?? null;
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data?.session?.access_token ?? null;
+      if (!accessToken) return;
 
-        if (!accessToken) {
-          if (mounted) {
-            setError("Not authenticated. Please log in.");
-            // show safe default UX
-            setOverview({
-              username: null,
-              accountBalance: 0,
-              recentTransactions: 0,
-              upcomingBills: 0,
-              totalSavings: 0,
-              features: {}
-            });
-          }
-          return;
-        }
+      const res = await fetch("/api/overview", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
 
-        const res = await fetch("/api/overview", {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json"
-          }
+      const payload = await res.json();
+
+      if (!res.ok) return;
+
+      if (mounted) {
+        setOverview({
+          username: payload.username,
+          accountBalance: payload.accountBalance,
+          recentTransactions: payload.recentTransactions,
+          upcomingBills: payload.upcomingBills,
+          totalSavings: payload.totalSavings,
         });
 
-        // try to parse even if not ok to surface backend message
-        const payload = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          const msg = payload?.error || `Failed to load overview (status ${res.status})`;
-          if (mounted) setError(msg);
-          return;
-        }
-
-        if (mounted) {
-          setOverview({
-            username: payload?.username ?? null,
-            accountBalance: Number(payload?.accountBalance ?? 0),
-            recentTransactions: Number(payload?.recentTransactions ?? 0),
-            upcomingBills: Number(payload?.upcomingBills ?? 0),
-            totalSavings: Number(payload?.totalSavings ?? 0),
-            features: payload?.features ?? {},
-          });
-        }
-      } catch (err) {
-        console.error("overview fetch error", err);
-        if (mounted) setError("Could not load dashboard");
-      } finally {
-        if (mounted) setLoading(false);
+        if (payload?.primaryAccNo) {
+  sessionStorage.setItem("senderAccNo", payload.primaryAccNo);
+  console.log("✅ senderAccNo stored in session:", payload.primaryAccNo);
+}
       }
-    })();
+    } finally {
+      if (mounted) setLoading(false);
+    }
+  })();
 
-    return () => { mounted = false; };
-  }, []);
+  return () => {
+    mounted = false;
+  };
+}, []);
 
   const linksClass = `other-links ${isSidebarOpen ? "" : "hidden-toggle"}`;
   const arrowClass = `${isSidebarOpen ? "rotated-icon" : ""}`;
@@ -398,5 +420,6 @@ const FinWinDashboard: React.FC = () => {
     </div>
   );
 };
+
 
 export default FinWinDashboard;

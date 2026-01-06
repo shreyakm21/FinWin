@@ -1,134 +1,162 @@
 import { NextResponse } from "next/server";
-import { supabaseServer } from "../../../lib/supabaseServer";
+import { supabaseAdmin } from "../../../utils/supabaseAdmin";
 
 export async function POST(req) {
   try {
-    const body = await req.json();
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
 
-    const {
-      paymentMode,
-      accountNumber, // receiver acc no
-      branch,
-      amount,
-      narration,
-    } = body;
-
-    if (!paymentMode || !accountNumber || !branch || !amount) {
+    if (!token) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    // 🔐 Get logged-in user
+    const { data: authData, error: authErr } =
+      await supabaseAdmin.auth.getUser(token);
+
+    if (authErr || !authData?.user) {
+      return NextResponse.json(
+        { error: "Invalid session" },
+        { status: 401 }
+      );
+    }
+
+    const authUUID = authData.user.id;
+
+    const body = await req.json();
+    const { paymentMode, accountNumber, branch, amount, narration } = body;
+
+    const numericAmount = Number(amount);
+    const numericBranchId = Number(branch);
+
+    if (!paymentMode || !accountNumber || numericAmount <= 0) {
+      return NextResponse.json(
+        { error: "Invalid request data" },
         { status: 400 }
       );
     }
 
-    const now = new Date().toISOString();
+    // 👤 Get internal userId
+    const { data: userRow } = await supabaseAdmin
+      .from("users")
+      .select("userId")
+      .eq("auth_uuid", authUUID)
+      .single();
 
-    // ✅ DATE ONLY : YYYYMMDD
-    const dateStr = new Date()
-      .toISOString()
-      .slice(0, 10)
-      .replace(/-/g, "");
+    if (!userRow) {
+      return NextResponse.json(
+        { error: "User profile not found" },
+        { status: 400 }
+      );
+    }
 
-    // =============================
-    // Sender (demo / logged-in user)
-    // =============================
-    const senderAccountId = 1;
-    const senderAccNo = "5001010001";
-
-    // =============================
-    // Receiver lookup
-    // =============================
-    const { data: receiver, error: recvErr } = await supabaseServer
+    // 🟢 GET SENDER ACCOUNT (REAL FIX)
+    const { data: sender } = await supabaseAdmin
       .from("account")
-      .select("accountId, accNo")
+      .select("accountId, accNo, balance")
+      .eq("userId", userRow.userId)
+      .single();
+
+    if (!sender) {
+      return NextResponse.json(
+        { error: "Sender account not found" },
+        { status: 400 }
+      );
+    }
+
+    if (sender.balance < numericAmount) {
+      return NextResponse.json(
+        { error: "Insufficient balance" },
+        { status: 400 }
+      );
+    }
+
+    // 🟢 Receiver
+    const { data: receiver } = await supabaseAdmin
+      .from("account")
+      .select("accountId, accNo, balance")
       .eq("accNo", accountNumber)
       .single();
 
-    if (recvErr || !receiver) {
+    if (!receiver) {
       return NextResponse.json(
         { error: "Receiver account not found" },
         { status: 400 }
       );
     }
 
-    const numericAmount = Number(amount);
-    const numericBranchId = Number(branch);
-
-    // =================================================
-    // 🔢 AUTO-INCREMENT REF NO (NO TIME, NO DASH)
-    // Example: UPI20260102001
-    // =================================================
+    // 🔢 REF NO
+    const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
     const refPrefix = `${paymentMode}${dateStr}`;
 
-    const { data: lastTx } = await supabaseServer
+    const { data: lastTx } = await supabaseAdmin
       .from("transaction")
       .select("refNo")
       .like("refNo", `${refPrefix}%`)
       .order("refNo", { ascending: false })
       .limit(1);
 
-    let nextNumber = "001";
-
-    if (lastTx && lastTx.length > 0) {
-      const lastRef = lastTx[0].refNo;
-      const lastNum = parseInt(lastRef.slice(-3), 10);
-      nextNumber = String(lastNum + 1).padStart(3, "0");
+    let next = "001";
+    if (lastTx?.length) {
+      next = String(parseInt(lastTx[0].refNo.slice(-3)) + 1).padStart(3,"0");
     }
 
-    const refNo = `${refPrefix}${nextNumber}`;
+    const refNo = `${refPrefix}${next}`;
 
-    // =================================================
-    // TRANSACTION ROWS
-    // =================================================
-    const rows = [
+    // 💰 Update balances
+    await supabaseAdmin
+      .from("account")
+      .update({ balance: sender.balance - numericAmount })
+      .eq("accountId", sender.accountId);
+
+    await supabaseAdmin
+      .from("account")
+      .update({ balance: receiver.balance + numericAmount })
+      .eq("accountId", receiver.accountId);
+
+    // 🧾 Transactions
+    await supabaseAdmin.from("transaction").insert([
       {
-        // 🔴 DEBIT
-        accountId: senderAccountId,
-        accNo: senderAccNo,
+        accountId: sender.accountId,
+        accNo: sender.accNo,
         amount: numericAmount,
         branchId: numericBranchId,
-        narration: narration || null,
-        createdAt: now,
+        narration,
         refNo,
         fromTo: receiver.accNo,
         mode: paymentMode,
-        status: "success",
         trxtype: "debit",
+        status: "success",
       },
       {
-        // 🟢 CREDIT
         accountId: receiver.accountId,
         accNo: receiver.accNo,
         amount: numericAmount,
         branchId: numericBranchId,
-        narration: narration || null,
-        createdAt: now,
+        narration,
         refNo,
-        fromTo: senderAccNo,
+        fromTo: sender.accNo,
         mode: paymentMode,
-        status: "success",
         trxtype: "credit",
+        status: "success",
       },
-    ];
-
-    const { data, error } = await supabaseServer
-      .from("transaction")
-      .insert(rows)
-      .select();
-
-    if (error) {
-      console.error("Supabase Insert Error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    ]);
 
     return NextResponse.json(
-      { message: "Transaction successful", refNo, data },
+      { message: "Transaction successful", refNo },
       { status: 201 }
     );
+
   } catch (err) {
-    console.error("Route Error:", err);
+    console.error(err);
     return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 }
+      { error: "Server error" },
+      { status: 500 }
     );
   }
 }

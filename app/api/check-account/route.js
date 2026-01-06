@@ -1,6 +1,31 @@
-// app/api/check-account/route.js
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../utils/supabaseAdmin";
+
+async function generateNextAccountNumber(supabaseAdmin) {
+  const PREFIX = "1010001"; // fixed bank prefix
+
+  const { data, error } = await supabaseAdmin
+    .from("account")
+    .select("accNo")
+    .like("accNo", `${PREFIX}%`)
+    .order("accNo", { ascending: false })
+    .limit(1);
+
+  if (error) {
+    throw new Error("Failed to fetch last account number");
+  }
+
+  // First account
+  if (!data || data.length === 0) {
+    return `${PREFIX}0001`; // 10100010001
+  }
+
+  const lastAccNo = data[0].accNo;
+  const lastNumber = parseInt(lastAccNo.slice(PREFIX.length), 10);
+  const nextNumber = lastNumber + 1;
+
+  return `${PREFIX}${String(nextNumber).padStart(4, "0")}`;
+}
 
 export async function POST(req) {
   try {
@@ -8,15 +33,15 @@ export async function POST(req) {
     console.log("check-account payload:", body);
 
     const {
-      uuid,               // auth UUID from Supabase Auth (preferred)
-      email,              // optional email fallback
-      acctype,            // account type (DB column 'acctype')
-      balance: rawBalance,// incoming balance (may be string/number)
-      branchId,           // integer branch id
+      uuid,
+      email,
+      acctype,
+      balance: rawBalance,
+      branchId,
       userId: providedUserId,
     } = body ?? {};
 
-    // basic validation
+    // ---------------- VALIDATION ----------------
     if (!acctype || typeof rawBalance === "undefined" || !branchId) {
       return NextResponse.json(
         { ok: false, error: "Missing required fields (acctype, balance, branchId)" },
@@ -24,123 +49,138 @@ export async function POST(req) {
       );
     }
 
-    // ensure numeric balance
     const balance = Number(rawBalance);
     if (Number.isNaN(balance) || balance <= 0) {
-      return NextResponse.json({ ok: false, error: "Invalid balance" }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "Invalid balance" },
+        { status: 400 }
+      );
     }
 
-    // 1) Resolve integer userId: prefer providedUserId, then auth_uuid (uuid), then email
+    // ---------------- RESOLVE USER ID ----------------
     let userId = providedUserId ?? null;
 
-    if (!userId) {
-      if (uuid) {
-        const { data: uByUuid, error: uByUuidErr } = await supabaseAdmin
-          .from("users")
-          .select("userId")
-          .eq("auth_uuid", uuid)
-          .maybeSingle();
+    if (!userId && uuid) {
+      const { data: uByUuid, error } = await supabaseAdmin
+        .from("users")
+        .select("userId")
+        .eq("auth_uuid", uuid)
+        .maybeSingle();
 
-        if (uByUuidErr) {
-          console.error("Error fetching user by uuid:", uByUuidErr);
-          return NextResponse.json({ ok: false, error: uByUuidErr.message }, { status: 500 });
-        }
-
-        if (uByUuid?.userId != null) userId = uByUuid.userId;
+      if (error) {
+        return NextResponse.json(
+          { ok: false, error: error.message },
+          { status: 500 }
+        );
       }
+
+      if (uByUuid?.userId != null) userId = uByUuid.userId;
     }
 
     if (!userId && email) {
-      const { data: uByEmail, error: uByEmailErr } = await supabaseAdmin
+      const { data: uByEmail, error } = await supabaseAdmin
         .from("users")
         .select("userId")
         .eq("email", email)
         .maybeSingle();
 
-      if (uByEmailErr) {
-        console.error("Error fetching user by email:", uByEmailErr);
-        return NextResponse.json({ ok: false, error: uByEmailErr.message }, { status: 500 });
+      if (error) {
+        return NextResponse.json(
+          { ok: false, error: error.message },
+          { status: 500 }
+        );
       }
 
       if (uByEmail?.userId != null) userId = uByEmail.userId;
     }
 
-    // If still no userId, create a minimal user row if we have an email (so account creation can proceed)
+    // ---------------- CREATE USER IF NEEDED ----------------
     if (!userId) {
       if (!email) {
-        return NextResponse.json({ ok: false, error: "User not found (no uuid/userId/email provided)" }, { status: 404 });
+        return NextResponse.json(
+          { ok: false, error: "User not found" },
+          { status: 404 }
+        );
       }
 
-      // Insert minimal user: email, auth_uuid (if available), roleId = 4
-      const newUserObj = {
-        email,
-        roleId: 4,
-      };
-      if (uuid) newUserObj.auth_uuid = uuid;
-
-      const { data: newUserData, error: newUserErr } = await supabaseAdmin
+      const { data: newUser, error } = await supabaseAdmin
         .from("users")
-        .insert([newUserObj])
+        .insert([
+          {
+            email,
+            auth_uuid: uuid ?? null,
+            roleId: 4,
+          },
+        ])
         .select("userId")
-        .limit(1);
+        .single();
 
-      if (newUserErr) {
-        console.error("Error creating minimal user:", newUserErr);
-        return NextResponse.json({ ok: false, error: newUserErr.message }, { status: 500 });
+      if (error || !newUser) {
+        return NextResponse.json(
+          { ok: false, error: "Failed to create user" },
+          { status: 500 }
+        );
       }
 
-      userId = newUserData?.[0]?.userId ?? null;
-      if (!userId) {
-        return NextResponse.json({ ok: false, error: "Failed to create user" }, { status: 500 });
-      }
+      userId = newUser.userId;
     }
 
-    // 2) Check if an account already exists for this user
-    const { data: existingAccount, error: existingError } = await supabaseAdmin
+    // ---------------- CHECK EXISTING ACCOUNT ----------------
+    const { data: existingAccount, error: accErr } = await supabaseAdmin
       .from("account")
       .select("*")
       .eq("userId", userId)
       .maybeSingle();
 
-    if (existingError) {
-      console.error("Error checking existing account:", existingError);
-      return NextResponse.json({ ok: false, error: existingError.message }, { status: 500 });
+    if (accErr) {
+      return NextResponse.json(
+        { ok: false, error: accErr.message },
+        { status: 500 }
+      );
     }
 
     if (existingAccount) {
-      // if account exists, return it
-      const sanitized = { ...existingAccount };
-      return NextResponse.json({ ok: true, existed: true, data: sanitized }, { status: 200 });
+      return NextResponse.json(
+        { ok: true, existed: true, data: existingAccount },
+        { status: 200 }
+      );
     }
 
-    // 3) Insert new account row (use camelCase column names matching your table)
-    const accNo = `5001${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)
-      .toString()
-      .padStart(3, "0")}`;
-
-    const insertObj = {
-      userId,
-      acctype,
-      balance,
-      branchId,
-      accNo,
-      createdAt: new Date().toISOString(),
-    };
+    // ---------------- CREATE ACCOUNT ----------------
+    const accNo = await generateNextAccountNumber(supabaseAdmin);
 
     const { data: inserted, error: insertError } = await supabaseAdmin
       .from("account")
-      .insert([insertObj])
+      .insert([
+        {
+          userId,
+          acctype,
+          balance,
+          branchId,
+          accNo,
+          createdAt: new Date().toISOString(),
+        },
+      ])
       .select("*")
-      .limit(1);
+      .single();
 
     if (insertError) {
-      console.error("Insert error:", insertError);
-      return NextResponse.json({ ok: false, error: insertError.message }, { status: 500 });
+      return NextResponse.json(
+        { ok: false, error: insertError.message },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ ok: true, created: true, data: inserted?.[0] ?? null }, { status: 200 });
+    return NextResponse.json(
+      { ok: true, created: true, data: inserted },
+      { status: 200 }
+    );
+
   } catch (err) {
     console.error("check-account unexpected error:", err);
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: String(err.message || err) },
+      { status: 500 }
+    );
   }
 }

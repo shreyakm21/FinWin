@@ -2,8 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "../../../utils/supabaseClient"; // ⭐ REQUIRED
 
 const STORAGE_KEY = "txData";
+const SENDER_KEY = "senderAccNo"; // ⭐ sender account number
 
 const ConfirmPage: React.FC = () => {
   const router = useRouter();
@@ -12,45 +14,75 @@ const ConfirmPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // 🔹 Load transaction
+  // 🔹 Load transaction + senderAccNo
   useEffect(() => {
     const raw = sessionStorage.getItem(STORAGE_KEY);
+    const senderAccNo = sessionStorage.getItem(SENDER_KEY);
+
+    console.log("🟡 txData:", raw);
+    console.log("🟡 senderAccNo:", senderAccNo);
+
     if (!raw) {
       router.replace("/transaction");
       return;
     }
+
     setTx(JSON.parse(raw));
   }, [router]);
 
   if (!tx) return null;
 
-  // 🔹 Confirm payment (FIXED)
+  // 🔹 Confirm payment
   const handleConfirm = async () => {
     setLoading(true);
 
-    // ✅ IMPORTANT FIX: send correct types
+    // ✅ sender account number
+    const senderAccNo = sessionStorage.getItem(SENDER_KEY);
+
+    if (!senderAccNo) {
+      alert("Sender account not found. Please login again.");
+      setLoading(false);
+      router.push("/finwin_dashboard");
+      return;
+    }
+
+    // ✅ build payload exactly as backend expects
     const payload = {
-      ...tx,
-      accountNumber: String(tx.accountNumber),
-      branch: String(tx.branch),
-      amount: String(tx.amount),
+      paymentMode: tx.paymentMode,
+      senderAccNo: senderAccNo,                // ⭐ IMPORTANT
+      accountNumber: String(tx.accountNumber), // receiver acc no
+      branch: String(tx.branch),               // branchId
+      amount: String(tx.amount),               // amount
+      narration: tx.narration || null,
     };
 
+    console.log("🟢 FINAL PAYLOAD:", payload);
+
     try {
+      // ✅ GET AUTH TOKEN (MOST IMPORTANT FIX)
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      if (!sessionData?.session?.access_token) {
+        alert("Session expired. Please login again.");
+        setLoading(false);
+        router.push("/login");
+        return;
+      }
+
       const res = await fetch("/api/transactions", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session.access_token}`, // ⭐ FIX
+        },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
-      // ❌ Backend error
       if (!res.ok) {
         alert(data.error || "Transaction failed");
         setLoading(false);
-
-        // 👉 OK केल्यावर Details page
         router.push("/transaction");
         return;
       }
@@ -59,7 +91,8 @@ const ConfirmPage: React.FC = () => {
       sessionStorage.removeItem(STORAGE_KEY);
       setSuccess(true);
       setLoading(false);
-    } catch {
+    } catch (err) {
+      console.error("❌ Network error:", err);
       alert("Network error");
       setLoading(false);
       router.push("/transaction");
@@ -80,7 +113,7 @@ const ConfirmPage: React.FC = () => {
       </header>
 
       <main className="transaction-page-inner">
-        {/* ===== STEPPER ===== */}
+        {/* STEPPER */}
         <section className="transaction-stepper">
           <div className="transaction-step transaction-step--completed">
             <div className="transaction-step-number">✔</div>
@@ -92,7 +125,6 @@ const ConfirmPage: React.FC = () => {
             <div className="transaction-step-label">Review</div>
           </div>
 
-          {/* ✅ CONFIRM STEP */}
           <div
             className={`transaction-step ${
               success
@@ -107,7 +139,7 @@ const ConfirmPage: React.FC = () => {
           </div>
         </section>
 
-        {/* ===== CARD ===== */}
+        {/* CARD */}
         <section className="transaction-content-grid">
           <div
             className="transaction-card"
