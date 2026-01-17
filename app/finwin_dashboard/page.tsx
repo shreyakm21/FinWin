@@ -251,7 +251,11 @@ useEffect(() => {
       </Link>
     </li>
     <li className="sidebar-item"><span className="sidebar-text">Pay Bills</span></li>
-    <li className="sidebar-item"><span className="sidebar-text">Analytics</span></li>
+    <li className="sidebar-item">
+      <Link href="/analytics" className="sidebar-text">
+        Analytics
+      </Link>    
+    </li>
     <li className="sidebar-item"><span className="sidebar-text">Accounts</span></li>
     <li className="sidebar-item"><span className="sidebar-text">Transactions</span></li>
     <li className="sidebar-item"><span className="sidebar-text">Support</span></li>
@@ -298,8 +302,8 @@ useEffect(() => {
 
         {/* Top banner */}
         <section className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 bg-white p-5 rounded-lg shadow">
-  <div className="flex items-center space-x-3">
-    {/* ... */}
+  <div className="flex items-center space-x-3" style={{ fontWeight: 700 }}>
+    Welcome back,  {loading ? "Loading..." : overview?.username ? ` ${overview.username}!` : "Welcome back!"}
   </div>
   <Link href="/transaction" className="btn-primary mt-3 md:mt-0">
     Quick Transfer

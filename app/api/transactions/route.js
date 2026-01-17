@@ -1,3 +1,5 @@
+//app/api/transactions/route.js
+
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../utils/supabaseAdmin";
 

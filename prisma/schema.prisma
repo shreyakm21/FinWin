@@ -22,11 +22,12 @@ model User {
   password   String
   firstName  String
   lastName   String
-  city       String
-  address    String
-  pincode    String
+  city       String?
+  address    String?
+  pincode    String?
   phoneNo    String
   roleId     Int
+
   createdAt  DateTime  @default(now())
   lastLogin  DateTime?
 
@@ -64,15 +65,13 @@ model Transaction {
   mode          TransactionMode
   status        TransactionStatus
 
+
   narration     String
   refNo         String
   fromTo        String
   createdAt     DateTime           @default(now())
 
-  Account       Account @relation(
-    fields: [accountId, accNo],
-    references: [accountId, accNo]
-  )
+  Account       Account @relation(fields: [accountId, accNo], references: [accountId, accNo])
 
   Branch        Branch  @relation(fields: [branchId], references: [branchId])
 
@@ -91,4 +90,32 @@ model Branch {
   @@schema("banking")
 }
 
+
+enum TransactionType {
+  credit
+  debit
+
+  @@schema("banking")
+}
+
+enum TransactionMode {
+  UPIT
+  NEFT
+  RTGS
+  CSHD
+  CSHW
+  CHEQ
+  CARD
+
+  @@schema("banking")
+}
+
+enum TransactionStatus {
+  pending
+  success
+  failed
+  reversed
+
+  @@schema("banking")
+}
 

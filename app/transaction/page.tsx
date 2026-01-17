@@ -165,9 +165,18 @@ const TransferPage: React.FC = () => {
                 />
               </div>
 
+              <button
+                type="button"
+                className="transaction-btn-primary"
+                onClick={() => router.push("/finwin_dashboard")}
+              >
+                Abort ➜
+              </button>
+
               <button type="submit" className="transaction-btn-primary">
                 Proceed to Pay ➜
               </button>
+              
             </form>
           </div>
         </section>

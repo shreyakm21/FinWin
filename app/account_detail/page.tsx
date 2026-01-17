@@ -75,65 +75,102 @@ const BankAccountDetails: React.FC = () => {
 
   // SUBMIT
   const handleSubmit = async (event: React.FormEvent) => {
-  event.preventDefault();
-  setError(null);
-  setLoading(true);
+    event.preventDefault();
+    setError(null);
+    setLoading(true);
 
-  const balanceNum = parseFloat(currentBalance);
-  if (isNaN(balanceNum) || balanceNum <= 0) {
-    setError("Balance must be a positive number.");
-    setLoading(false);
-    return;
-  }
-
-  try {
-    if (!userUUID) {
-      setError("User session missing. Please log in again.");
+    const balanceNum = parseFloat(currentBalance);
+    if (isNaN(balanceNum) || balanceNum <= 0) {
+      setError("Balance must be a positive number.");
       setLoading(false);
       return;
     }
 
-    const payload: any = {
-      uuid: userUUID,
-      acctype: normalizeAcctype(accountType),
-      balance: balanceNum,
-      branchId: getBranchId(branchCity),
-    };
+    try {
+      if (!userUUID) {
+        setError("User session missing. Please log in again.");
+        setLoading(false);
+        return;
+      }
 
-    if (userId != null) payload.userId = userId;
+      const payload: any = {
+        uuid: userUUID,
+        acctype: normalizeAcctype(accountType),
+        balance: balanceNum,
+        branchId: getBranchId(branchCity),
+      };
 
-    const res = await fetch(CHECK_ACCOUNT_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+      if (userId != null) payload.userId = userId;
 
-    const json = await res.json();
+      const res = await fetch(CHECK_ACCOUNT_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    console.log("🟢 check-account response:", json);
+      const json = await res.json();
 
-    if (!res.ok || json?.ok === false) {
-      setError(json?.error || "Account creation failed");
+      if (!res.ok || json?.ok === false) {
+        setError(json?.error || "Account creation failed");
+        setLoading(false);
+        return;
+      }
+
+      if (json?.data?.accNo) {
+        sessionStorage.setItem("senderAccNo", json.data.accNo);
+      }
+
+      router.push("/account_created");
+    } catch (e) {
+      console.error("Account creation failed:", e);
+      setError("Unexpected server error");
+    } finally {
       setLoading(false);
-      return;
     }
+  };
 
-    // 🔥🔥🔥 THIS IS THE REAL FIX 🔥🔥🔥
-    if (json?.data?.accNo) {
-      sessionStorage.setItem("senderAccNo", json.data.accNo);
-      console.log("✅ senderAccNo SAVED:", json.data.accNo);
-    } else {
-      console.error("❌ accNo missing in response");
-    }
-
-    router.push("/account_created");
-  } catch (e) {
-    console.error("Account creation failed:", e);
-    setError("Unexpected server error");
-  } finally {
-    setLoading(false);
+  /* ✅ REQUIRED ADDITION: RETURN JSX */
+  if (loadingInitial) {
+    return <div>Loading account details...</div>;
   }
-};
+
+  return (
+    <div className="container mt-4">
+      <h2>Account Details</h2>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      <form onSubmit={handleSubmit}>
+        <div className="mb-3">
+          <label>Account Type</label>
+          <select
+            className="form-control"
+            value={accountType}
+            onChange={(e) => setAccountType(e.target.value)}
+          >
+            <option>Savings Account</option>
+            <option>Current Account</option>
+            <option>Fixed Deposit</option>
+          </select>
+        </div>
+
+        <div className="mb-3">
+          <label>Initial Balance</label>
+          <input
+            type="number"
+            className="form-control"
+            value={currentBalance}
+            onChange={(e) => setCurrentBalance(e.target.value)}
+            required
+          />
+        </div>
+
+        <button className="btn btn-primary" disabled={loading}>
+          {loading ? "Creating..." : "Create Account"}
+        </button>
+      </form>
+    </div>
+  );
 };
 
 export default BankAccountDetails;
