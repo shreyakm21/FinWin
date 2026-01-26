@@ -1,0 +1,33 @@
+.gt-progress {
+  background: #e5e7eb;
+  height: 8px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.gt-progress-fill {
+  height: 100%;
+}
+
+.gt-score {
+  text-align: center;
+}
+
+.gt-score-circle {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 6px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 12px auto;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.gt-muted {
+  color: #6b7280;
+  font-size: 14px;
+}

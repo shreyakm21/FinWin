@@ -1,15 +1,16 @@
+// app/transaction/confirm/page.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../../utils/supabaseClient"; // ⭐ REQUIRED
+import { supabase } from "../../../utils/supabaseClient";
 
+// ⭐ REQUIRED
 const STORAGE_KEY = "txData";
 const SENDER_KEY = "senderAccNo"; // ⭐ sender account number
 
 const ConfirmPage: React.FC = () => {
   const router = useRouter();
-
   const [tx, setTx] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -26,7 +27,6 @@ const ConfirmPage: React.FC = () => {
       router.replace("/transaction");
       return;
     }
-
     setTx(JSON.parse(raw));
   }, [router]);
 
@@ -38,7 +38,6 @@ const ConfirmPage: React.FC = () => {
 
     // ✅ sender account number
     const senderAccNo = sessionStorage.getItem(SENDER_KEY);
-
     if (!senderAccNo) {
       alert("Sender account not found. Please login again.");
       setLoading(false);
@@ -49,11 +48,12 @@ const ConfirmPage: React.FC = () => {
     // ✅ build payload exactly as backend expects
     const payload = {
       paymentMode: tx.paymentMode,
-      senderAccNo: senderAccNo,                // ⭐ IMPORTANT
+      senderAccNo: senderAccNo, // ⭐ IMPORTANT
       accountNumber: String(tx.accountNumber), // receiver acc no
-      branch: String(tx.branch),               // branchId
-      amount: String(tx.amount),               // amount
+      branch: String(tx.branch), // branchId
+      amount: String(tx.amount), // amount
       narration: tx.narration || null,
+      ignoreGoals: tx.ignoreGoals === true, // ✅ ADD THIS
     };
 
     console.log("🟢 FINAL PAYLOAD:", payload);
@@ -119,17 +119,13 @@ const ConfirmPage: React.FC = () => {
             <div className="transaction-step-number">✔</div>
             <div className="transaction-step-label">Details</div>
           </div>
-
           <div className="transaction-step transaction-step--completed">
             <div className="transaction-step-number">✔</div>
             <div className="transaction-step-label">Review</div>
           </div>
-
           <div
             className={`transaction-step ${
-              success
-                ? "transaction-step--completed"
-                : "transaction-step--active"
+              success ? "transaction-step--completed" : "transaction-step--active"
             }`}
           >
             <div className="transaction-step-number">
@@ -150,12 +146,10 @@ const ConfirmPage: React.FC = () => {
                 <h2 className="transaction-card-title">
                   Ready to Complete Transaction
                 </h2>
-
                 <p style={{ marginTop: 10 }}>
                   You are sending <strong>{formattedAmount}</strong> to{" "}
                   <strong>{tx.receiverName}</strong>
                 </p>
-
                 <div style={{ marginTop: 24 }}>
                   <button
                     className="transaction-btn-primary"
@@ -166,7 +160,6 @@ const ConfirmPage: React.FC = () => {
                     {loading ? "Processing..." : "Confirm Payment"}
                   </button>
                 </div>
-
                 <div style={{ marginTop: 16 }}>
                   <button
                     className="transaction-btn-secondary"
@@ -184,12 +177,10 @@ const ConfirmPage: React.FC = () => {
                 >
                   ✔ Transaction Successful
                 </h2>
-
                 <p style={{ marginTop: 10 }}>
                   <strong>{formattedAmount}</strong> sent to{" "}
                   <strong>{tx.receiverName}</strong>
                 </p>
-
                 <div style={{ marginTop: 24 }}>
                   <button
                     className="transaction-btn-primary"

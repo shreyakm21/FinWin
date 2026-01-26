@@ -1,0 +1,53 @@
+// app/api/reminders/route.ts
+
+import { NextResponse } from "next/server";
+import { supabaseAdmin } from "../../../utils/supabaseAdmin";
+
+export async function GET(req: Request) {
+  const token = req.headers.get("authorization")?.split(" ")[1];
+  if (!token) return NextResponse.json([], { status: 401 });
+
+  const { data: auth } = await supabaseAdmin.auth.getUser(token);
+  if (!auth?.user) return NextResponse.json([], { status: 401 });
+
+  const { data: user } = await supabaseAdmin
+    .from("users")
+    .select("userId")
+    .eq("auth_uuid", auth.user.id)
+    .single();
+
+  const { data } = await supabaseAdmin
+    .from("PaymentReminder")
+    .select("*")
+    .eq("userId", user.userId)
+    .order("nextTriggerAt");
+
+  return NextResponse.json(data);
+}
+
+export async function POST(req: Request) {
+  const token = req.headers.get("authorization")?.split(" ")[1];
+  if (!token) return NextResponse.json({}, { status: 401 });
+
+  const { data: auth } = await supabaseAdmin.auth.getUser(token);
+  if (!auth?.user) return NextResponse.json({}, { status: 401 });
+
+  const body = await req.json();
+
+  const { data: user } = await supabaseAdmin
+    .from("users")
+    .select("userId")
+    .eq("auth_uuid", auth.user.id)
+    .single();
+
+  await supabaseAdmin.from("PaymentReminder").insert({
+    userId: user.userId,
+    displayName: body.displayName,
+    accountNumber: body.accountNumber,
+    frequency: body.frequency,
+    scheduleJson: body.scheduleJson,
+    nextTriggerAt: body.nextTriggerAt,
+  });
+
+  return NextResponse.json({ ok: true });
+}

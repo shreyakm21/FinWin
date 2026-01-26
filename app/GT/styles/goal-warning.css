@@ -1,0 +1,52 @@
+/* Goal Warning Modal Styles */
+
+.gt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.gt-modal {
+  background: #fff;
+  width: 520px;
+  max-width: 90%;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.gt-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.gt-modal-subtitle {
+  margin-top: 8px;
+  color: #555;
+}
+
+.gt-violations {
+  margin-top: 16px;
+}
+
+.gt-violation-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.gt-exceeded {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.gt-modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+

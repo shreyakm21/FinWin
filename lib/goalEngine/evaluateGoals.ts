@@ -1,0 +1,100 @@
+import { supabaseAdmin } from "../../utils/supabaseAdmin";
+import { calculateSpentAmount } from "./spendCalculators";
+import { categorizeTransaction } from "../../utils/analytics/categorizer";
+
+export async function evaluateGoals({
+  userId,
+  amount,
+  narration,
+  trxtype,
+  createdAt,
+}: {
+  userId: number;
+  amount: number;
+  narration: string;
+  trxtype: "debit" | "credit";
+  createdAt: Date;
+}) {
+  if (trxtype !== "debit") {
+    return { violated: false, violations: [] };
+  }
+
+  const supabase = supabaseAdmin;
+
+  const { data: goals } = await supabase
+    .from("UserGoal")
+    .select("*")
+    .eq("userId", userId)
+    .eq("isActive", true);
+
+  if (!goals || goals.length === 0) {
+    return { violated: false, violations: [] };
+  }
+
+  const violations: any[] = [];
+  const newCategory = categorizeTransaction(narration ?? "", "debit");
+
+  for (const goal of goals) {
+    // ⏱️ Goal active window
+    if (createdAt < new Date(goal.startDate)) continue;
+    if (goal.endDate && createdAt > new Date(goal.endDate)) continue;
+
+    // 🗂️ Category filtering
+    if (
+      goal.goalType === "CATEGORY_LIMIT" &&
+      goal.categoryName &&
+      goal.categoryName !== newCategory
+    ) {
+      continue;
+    }
+
+    let currentSpent = 0;
+
+    // 🔹 Accumulated goals
+    if (goal.frequency !== "PER_TRANSFER") {
+      const windowStart = new Date(createdAt);
+
+      if (goal.frequency === "DAILY") {
+        windowStart.setHours(0, 0, 0, 0);
+      }
+
+      if (goal.frequency === "WEEKLY") {
+        const day = windowStart.getDay(); // 0 (Sun) → 6 (Sat)
+        const diff = windowStart.getDate() - day;
+        windowStart.setDate(diff);
+        windowStart.setHours(0, 0, 0, 0);
+      }
+
+      if (goal.frequency === "MONTHLY") {
+        windowStart.setDate(1);
+        windowStart.setHours(0, 0, 0, 0);
+      }
+
+      currentSpent = await calculateSpentAmount({
+        userId,
+        window: { start: windowStart, end: new Date() },
+        categoryName:
+          goal.goalType === "CATEGORY_LIMIT" ? goal.categoryName : undefined,
+      });
+    }
+
+    const projected = currentSpent + amount;
+
+    if (goal.limitAmount && projected > goal.limitAmount) {
+      violations.push({
+        goalId: goal.goalId,
+        title: goal.title,
+        type: goal.goalType,
+        limit: goal.limitAmount,
+        currentSpent,
+        projected,
+        exceededBy: projected - goal.limitAmount,
+      });
+    }
+  }
+
+  return {
+    violated: violations.length > 0,
+    violations,
+  };
+}

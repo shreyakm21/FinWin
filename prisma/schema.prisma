@@ -119,3 +119,94 @@ enum TransactionStatus {
   @@schema("banking")
 }
 
+enum GoalType {
+  SPEND_LIMIT
+  CATEGORY_LIMIT
+  REMINDER
+
+  @@schema("banking")
+}
+
+enum GoalFrequency {
+  PER_TRANSFER
+  DAILY
+  WEEKLY
+  MONTHLY
+  CUSTOM
+  RECURRING
+
+  @@schema("banking")
+}
+
+enum ReminderFrequency {
+  MONTHLY
+  QUARTERLY
+  HALFYEARLY
+  YEARLY
+  CUSTOM
+
+  @@schema("banking")
+}
+
+model UserGoal {
+  goalId         Int       @id @default(autoincrement())
+  userId         Int
+
+  goalType       GoalType
+  title          String
+  description    String?
+
+  // Time window
+  startDate      DateTime
+  endDate        DateTime?
+
+  frequency      GoalFrequency
+
+  // For spend / category goals
+  limitAmount    Float?
+  categoryName   String?   // e.g. "Entertainment"
+
+  violationCount Int       @default(0)
+  isActive       Boolean   @default(true)
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId])
+  @@schema("banking")
+}
+
+model GoalViolation {
+  violationId    Int       @id @default(autoincrement())
+  goalId         Int
+  transactionId  BigInt
+
+  attemptedAmount Float
+  exceededBy      Float
+
+  createdAt      DateTime  @default(now())
+
+  @@index([goalId])
+  @@index([transactionId])
+  @@schema("banking")
+}
+
+model PaymentReminder {
+  reminderId     Int       @id @default(autoincrement())
+  userId         Int
+
+  displayName    String    // e.g. EXT-MHCEB
+  accountNumber  String
+
+  frequency      ReminderFrequency
+  scheduleJson   Json      // cron-like rule or custom config
+
+  nextTriggerAt  DateTime
+  lastTriggeredAt DateTime?
+
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  @@index([userId])
+  @@schema("banking")
+}

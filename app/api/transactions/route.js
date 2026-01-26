@@ -2,6 +2,9 @@
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../utils/supabaseAdmin";
+import { evaluateGoals } from "../../../lib/goalEngine/evaluateGoals";
+import { logGoalViolations } from "../../../lib/goalEngine/violationLogger";
+
 
 export async function POST(req) {
   try {
@@ -31,7 +34,15 @@ export async function POST(req) {
     const authUUID = authData.user.id;
 
     const body = await req.json();
-    const { paymentMode, accountNumber, branch, amount, narration } = body;
+    const {
+      paymentMode,
+      accountNumber,
+      branch,
+      amount,
+      narration,
+      ignoreGoals = false
+    } = body;
+
 
     const numericAmount = Number(amount);
     const numericBranchId = Number(branch);
@@ -77,6 +88,31 @@ export async function POST(req) {
         { status: 400 }
       );
     }
+
+    // ⚠️ Goal check (pre-transaction)
+    let goalViolations = [];
+
+    const goalResult = await evaluateGoals({
+      userId: userRow.userId,
+      amount: numericAmount,
+      narration: narration ?? "",
+      trxtype: "debit",
+      createdAt: new Date(),
+    });
+
+    if (goalResult.violated && !ignoreGoals) {
+      return NextResponse.json(
+        { warning: true, violations: goalResult.violations },
+        { status: 200 }
+      );
+    }
+
+    if (goalResult.violated && ignoreGoals) {
+      goalViolations = goalResult.violations;
+    }
+
+
+
 
     // 🟢 Receiver
     const { data: receiver } = await supabaseAdmin
@@ -148,6 +184,25 @@ export async function POST(req) {
         status: "success",
       },
     ]);
+
+    // 🧾 Log goal violations (if user ignored warnings)
+    if (goalViolations.length > 0) {
+      const { data: tx } = await supabaseAdmin
+        .from("transaction")
+        .select("transactionId")
+        .eq("refNo", refNo)
+        .eq("trxtype", "debit")
+        .single();
+
+      if (tx?.transactionId) {
+        await logGoalViolations({
+          violations: goalViolations,
+          transactionId: tx.transactionId,
+          attemptedAmount: numericAmount, // ✅ correct field
+        });
+      }
+    }
+
 
     return NextResponse.json(
       { message: "Transaction successful", refNo },

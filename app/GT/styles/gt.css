@@ -1,0 +1,17 @@
+/* app/GT/styles/gt.css */
+
+.gt-page {
+  padding: 32px;
+}
+
+.gt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.gt-empty {
+  color: #6b7280;
+  margin-top: 16px;
+}

@@ -1,13 +1,21 @@
+// app/transaction/review/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "../../../utils/supabaseClient";
+
+import GoalWarningModal from "../../GT/components/GoalWarningModal";
+import "../../GT/styles/goal-warning.css";
 
 const STORAGE_KEY = "txData";
 
 export default function ReviewPage() {
   const router = useRouter();
   const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [goalViolations, setGoalViolations] = useState<any[] | null>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem(STORAGE_KEY);
@@ -19,6 +27,75 @@ export default function ReviewPage() {
   }, [router]);
 
   if (!data) return null;
+
+  // 🔎 Check goals before final confirmation
+  const handleConfirm = async () => {
+    setLoading(true);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      if (!sessionData?.session?.access_token) {
+        alert("Session expired. Please login again.");
+        router.push("/login");
+        return;
+      }
+
+      const payload = {
+        paymentMode: data.paymentMode,
+        accountNumber: String(data.accountNumber),
+        branch: String(data.branch),
+        amount: String(data.amount),
+        narration: data.narration || null,
+      };
+
+      const res = await fetch("/api/goal-check", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+
+      // ⚠️ Goal violation detected
+      if (result?.violated && result.violations?.length > 0) {
+        setGoalViolations(result.violations);
+        setLoading(false);
+        return;
+      }
+
+      // ✅ No violations → continue normally
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      router.push("/transaction/confirm");
+
+    } catch (err) {
+      console.error("Goal check failed:", err);
+      alert("Unable to check goals. Please try again.");
+      setLoading(false);
+    }
+  };
+
+  // ✅ User accepts violation
+  const handleProceedAnyway = () => {
+    const updated = {
+      ...data,
+      ignoreGoals: true,
+    };
+
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    setGoalViolations(null);
+    router.push("/transaction/confirm");
+  };
+
+  // ❌ User cancels payment due to goal violation (ONLY ADDITION)
+  const handleCancelViolation = () => {
+    sessionStorage.removeItem(STORAGE_KEY);
+    setGoalViolations(null);
+    router.replace("/finwin_dashboard");
+  };
 
   return (
     <div className="transaction-page">
@@ -56,7 +133,6 @@ export default function ReviewPage() {
             marginTop: 40,
           }}
         >
-          {/* ===== SUMMARY CARD ===== */}
           <div
             className="transaction-card"
             style={{ maxWidth: 420, width: "100%" }}
@@ -106,13 +182,23 @@ export default function ReviewPage() {
               type="button"
               className="transaction-btn-primary"
               style={{ marginTop: 20, width: "100%" }}
-              onClick={() => router.push("/transaction/confirm")}
+              onClick={handleConfirm}
+              disabled={loading}
             >
-              Confirm Payment
+              {loading ? "Checking goals..." : "Confirm Payment"}
             </button>
           </div>
         </section>
       </main>
+
+      {/* ⚠️ GOAL WARNING MODAL */}
+      {goalViolations && (
+        <GoalWarningModal
+          violations={goalViolations}
+          onCancel={handleCancelViolation}   /* ONLY CHANGE */
+          onProceed={handleProceedAnyway}
+        />
+      )}
     </div>
   );
 }
