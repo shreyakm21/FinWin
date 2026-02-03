@@ -1,9 +1,8 @@
-// app/transaction/page.tsx
-
 "use client";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check } from "lucide-react";
 
 const STORAGE_KEY = "txData";
 
@@ -44,45 +43,78 @@ const TransferPage: React.FC = () => {
   };
 
   return (
-    <div className="transaction-page">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* HEADER */}
-      <header className="transaction-top-bar">
-        <div className="transaction-logo-mark">*</div>
-        <div className="transaction-logo-text">FinWinTransfer</div>
+      <header className="sticky top-0 z-50 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
+              <span className="text-lg font-bold text-white">✦</span>
+            </div>
+            <span className="text-xl font-bold text-white">FinWin</span>
+          </div>
+          <button
+            onClick={() => router.push("/finwin_dashboard")}
+            className="text-sm font-medium text-slate-400 transition-colors hover:text-white"
+          >
+            Dashboard
+          </button>
+        </div>
       </header>
 
-      <main className="transaction-page-inner">
+      <main className="mx-auto max-w-4xl px-6 py-12">
         {/* STEPPER */}
-        <section className="transaction-stepper">
-          <div className="transaction-step transaction-step--active">
-            <div className="transaction-step-number">1</div>
-            <div className="transaction-step-label">Details</div>
-          </div>
+        <div className="mb-12">
+          <div className="flex items-center justify-between gap-4">
+            {/* Step 1 */}
+            <div className="flex flex-1 flex-col items-center">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-cyan-500">
+                <span className="text-sm font-bold text-white">1</span>
+              </div>
+              <span className="text-sm font-medium text-white">Details</span>
+            </div>
 
-          <div className="transaction-step">
-            <div className="transaction-step-number">2</div>
-            <div className="transaction-step-label">Review</div>
-          </div>
+            {/* Connector 1 */}
+            <div className="mb-6 flex-1 h-1 bg-slate-700"></div>
 
-          <div className="transaction-step">
-            <div className="transaction-step-number">3</div>
-            <div className="transaction-step-label">Confirm</div>
+            {/* Step 2 */}
+            <div className="flex flex-1 flex-col items-center">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-slate-600 bg-slate-800">
+                <span className="text-sm font-bold text-slate-400">2</span>
+              </div>
+              <span className="text-sm font-medium text-slate-400">Review</span>
+            </div>
+
+            {/* Connector 2 */}
+            <div className="mb-6 flex-1 h-1 bg-slate-700"></div>
+
+            {/* Step 3 */}
+            <div className="flex flex-1 flex-col items-center">
+              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-slate-600 bg-slate-800">
+                <span className="text-sm font-bold text-slate-400">3</span>
+              </div>
+              <span className="text-sm font-medium text-slate-400">Confirm</span>
+            </div>
           </div>
-        </section>
+        </div>
 
         {/* FORM CARD */}
-        <section className="transaction-content-grid">
-          <div className="transaction-card" style={{ gridColumn: "1 / -1" }}>
-            <h2 className="transaction-card-title">Transfer Details</h2>
+        <div className="rounded-2xl border border-slate-700/50 bg-gradient-to-br from-gray-900 via-slate-900 to-black p-8 backdrop-blur-xl">
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-white">Transfer Details</h2>
+            <p className="mt-2 text-slate-400">Enter the details of your transfer</p>
+          </div>
 
-            <form className="transaction-form-grid" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Payment Mode & Receiver Account Row */}
+            <div className="grid gap-6 md:grid-cols-2">
               {/* Payment Mode */}
-              <div className="transaction-field">
-                <label className="transaction-field-label">
-                  Payment Mode
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-slate-200">
+                  Payment Mode <span className="text-red-400">*</span>
                 </label>
                 <select
-                  className="transaction-field-input"
+                  className="rounded-lg border border-slate-600/50 bg-slate-700/50 px-4 py-3 text-slate-100 placeholder-slate-500 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   value={paymentMode}
                   onChange={(e) => setPaymentMode(e.target.value)}
                 >
@@ -92,26 +124,31 @@ const TransferPage: React.FC = () => {
                 </select>
               </div>
 
-              {/* Receiver Account */}
-              <div className="transaction-field">
-                <label className="transaction-field-label">
-                  Receiver Account Number
+              {/* Receiver Account Number */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-slate-200">
+                  Receiver Account <span className="text-red-400">*</span>
                 </label>
                 <input
-                  className="transaction-field-input"
+                  className="rounded-lg border border-slate-600/50 bg-slate-700/50 px-4 py-3 text-slate-100 placeholder-slate-500 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  type="text"
                   placeholder="Enter account number"
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
                 />
               </div>
+            </div>
 
+            {/* Receiver Name & Branch Row */}
+            <div className="grid gap-6 md:grid-cols-2">
               {/* Receiver Name */}
-              <div className="transaction-field">
-                <label className="transaction-field-label">
-                  Receiver Name
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-slate-200">
+                  Receiver Name <span className="text-red-400">*</span>
                 </label>
                 <input
-                  className="transaction-field-input"
+                  className="rounded-lg border border-slate-600/50 bg-slate-700/50 px-4 py-3 text-slate-100 placeholder-slate-500 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  type="text"
                   placeholder="Enter receiver name"
                   value={receiverName}
                   onChange={(e) => setReceiverName(e.target.value)}
@@ -119,12 +156,12 @@ const TransferPage: React.FC = () => {
               </div>
 
               {/* Branch */}
-              <div className="transaction-field">
-                <label className="transaction-field-label">
-                  Branch
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-slate-200">
+                  Branch <span className="text-red-400">*</span>
                 </label>
                 <select
-                  className="transaction-field-select"
+                  className="rounded-lg border border-slate-600/50 bg-slate-700/50 px-4 py-3 text-slate-100 placeholder-slate-500 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   value={branch}
                   onChange={(e) => setBranch(e.target.value)}
                 >
@@ -135,53 +172,69 @@ const TransferPage: React.FC = () => {
                   <option value="4">Chennai</option>
                 </select>
               </div>
+            </div>
 
-              {/* Amount */}
-              <div className="transaction-field">
-                <label className="transaction-field-label">
-                  Amount
-                </label>
-                <div className="transaction-field-row">
-                  <span className="transaction-currency-prefix">₹</span>
-                  <input
-                    className="transaction-field-input"
-                    type="number"
-                    min={1}
-                    placeholder="Enter amount"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Narration */}
-              <div className="transaction-field">
-                <div className="transaction-field-label">
-                  Narration <span>(Optional)</span>
-                </div>
-                <textarea
-                  className="transaction-field-textarea"
-                  placeholder="Add a note for this transfer"
-                  value={narration}
-                  onChange={(e) => setNarration(e.target.value)}
+            {/* Amount */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-slate-200">
+                Amount <span className="text-red-400">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-3 text-lg font-semibold text-slate-400">
+                  ₹
+                </span>
+                <input
+                  className="w-full rounded-lg border border-slate-600/50 bg-slate-700/50 pl-8 pr-4 py-3 text-slate-100 placeholder-slate-500 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  type="number"
+                  min={1}
+                  placeholder="Enter amount"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
                 />
               </div>
+            </div>
 
+            {/* Narration */}
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-slate-200">
+                Narration{" "}
+                <span className="font-normal text-slate-400">(Optional)</span>
+              </label>
+              <textarea
+                className="min-h-24 rounded-lg border border-slate-600/50 bg-slate-700/50 px-4 py-3 text-slate-100 placeholder-slate-500 transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="Add a note for this transfer"
+                value={narration}
+                onChange={(e) => setNarration(e.target.value)}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-4 pt-6">
               <button
                 type="button"
-                className="transaction-btn-primary"
                 onClick={() => router.push("/finwin_dashboard")}
+                className="flex-1 rounded-lg border border-slate-600/50 bg-slate-700/50 px-6 py-3 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500/50 hover:bg-slate-700/70"
               >
-                Abort ➜
+                Cancel
               </button>
 
-              <button type="submit" className="transaction-btn-primary">
-                Proceed to Pay ➜
+              <button
+                type="submit"
+                className="flex-1 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-all hover:from-blue-700 hover:to-cyan-700 hover:shadow-blue-500/40"
+              >
+                Proceed to Pay
               </button>
-              
-            </form>
-          </div>
-        </section>
+            </div>
+          </form>
+        </div>
+
+        {/* Security Info */}
+        <div className="mt-8 flex items-center gap-3 rounded-lg border border-slate-700/50 bg-slate-800/30 p-4">
+          <Check className="h-5 w-5 text-green-400" />
+          <p className="text-sm text-slate-300">
+            FINWIN
+          </p>
+        </div>
       </main>
     </div>
   );

@@ -2,7 +2,10 @@
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../../lib/supabaseServer";
-import { categorizeTransaction } from "../../../../utils/analytics/categorizer";
+import {
+  categorizeTransaction,
+  categorizeTransactionSmart,
+} from "../../../../utils/analytics/categorizer";
 
 export async function GET(req: Request) {
   /**
@@ -86,7 +89,11 @@ export async function GET(req: Request) {
   let totalExpense = 0;
 
   for (const tx of transactions) {
-    const category = categorizeTransaction(tx.narration ?? "", tx.trxtype);
+    const category = await categorizeTransactionSmart(
+      tx.narration ?? "",
+      tx.trxtype
+    );
+
     categoryMap.set(category, (categoryMap.get(category) ?? 0) + tx.amount);
     totalExpense += tx.amount;
   }

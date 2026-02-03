@@ -8,37 +8,19 @@ const DEFAULT_CATEGORY = "Others";
 
 /* ---------------- Merchant Override Rules ---------------- */
 const MERCHANT_RULES: [string, string[]][] = [
-  [
-    "Food",
-    [
-      "swiggy",
-      "zomato",
-      "domino",
-      "pizza",
-      "mcd",
-      "kfc",
-      "lunch",
-      "dinner",
-      "restaurant",
-      "cafe",
-      "meal",
-      "snacks",
-      "milk",
-      "tea",
-      "coffee",
-    ],
-  ],
+  ["Food", ["swiggy", "zomato", "domino", "pizza", "mcd", "kfc", "lunch", "dinner", "restaurant", "cafe", "meal", "snacks"]],
   ["Travel & Commute", ["uber", "ola", "rapido", "metro", "bus", "train"]],
   ["Entertainment", ["netflix", "spotify", "prime", "hotstar", "movie"]],
   ["Shopping", ["amazon", "flipkart", "myntra", "zara"]],
   ["Bills & Utilities", ["electricity", "water bill", "gas bill", "wifi", "broadband"]],
   ["Recharge/Topup", ["recharge", "topup", "dth", "prepaid", "postpaid"]],
   ["Transfer/UPI", ["upi", "neft", "rtgs", "imps", "phonepe", "gpay", "paytm"]],
-  ["Health & Medical", ["gym", "fitness", "yoga", "workout", "doctor", "pharmacy"]],
+  ["Health & Medical", ["gym", "fitness", "yoga", "workout"]],
 ];
 
 /* ---------------- Credit Keywords ---------------- */
 const INCOME_KEYWORDS = ["salary", "payroll", "credited", "income", "stipend"];
+
 const REFUND_KEYWORDS = ["refund", "reversal", "chargeback", "cashback"];
 
 /* ---------------- Confidence Threshold ---------------- */
@@ -57,7 +39,11 @@ const model = modelData as ModelJSON;
 
 /* ---------------- TF-IDF Vectorizer ---------------- */
 function vectorize(text: string): number[] {
-  const tokens = text.toLowerCase().split(/\W+/).filter(Boolean);
+  const tokens = text
+    .toLowerCase()
+    .split(/\W+/)
+    .filter(Boolean);
+
   const vec = new Array(model.idf.length).fill(0);
 
   for (let i = 0; i < tokens.length; i++) {
@@ -84,7 +70,9 @@ function predictCategory(vec: number[]): { category: string; score: number } {
     const bias = model.intercepts[c];
 
     let score = bias;
-    for (let i = 0; i < vec.length; i++) score += vec[i] * weights[i];
+    for (let i = 0; i < vec.length; i++) {
+      score += vec[i] * weights[i];
+    }
 
     if (score > bestScore) {
       bestScore = score;
@@ -99,7 +87,7 @@ function predictCategory(vec: number[]): { category: string; score: number } {
 }
 
 /* ========================================================= */
-/*   1️⃣ OLD SYNC VERSION (Backwards Compatible Everywhere)   */
+/*                  MAIN FINWIN CATEGORIZER                   */
 /* ========================================================= */
 
 export function categorizeTransaction(
@@ -110,12 +98,25 @@ export function categorizeTransaction(
 
   const n = narration.toLowerCase();
 
-  // Merchant override first
-  for (const [category, keywords] of MERCHANT_RULES) {
-    if (keywords.some(k => n.includes(k))) return category;
+  /* ---------- 1. EXT-* Merchant Handling ---------- */
+  if (n.startsWith("ext-")) {
+    const merchant = n.replace("ext-", "");
+
+    for (const [category, keywords] of MERCHANT_RULES) {
+      if (keywords.some(k => merchant.includes(k))) {
+        return category;
+      }
+    }
   }
 
-  // Credit rules
+  /* ---------- 2. Merchant Override (High Confidence) ---------- */
+  for (const [category, keywords] of MERCHANT_RULES) {
+    if (keywords.some(k => n.includes(k))) {
+      return category;
+    }
+  }
+
+  /* ---------- 3. CREDIT Transactions (Rule-Based Only) ---------- */
   if (trxtype === "credit") {
     if (INCOME_KEYWORDS.some(k => n.includes(k))) return "Salary / Income";
     if (REFUND_KEYWORDS.some(k => n.includes(k))) return "Refund";
@@ -123,44 +124,14 @@ export function categorizeTransaction(
     return "Transfer In";
   }
 
-  // TF-IDF fallback (fast)
+  /* ---------- 4. DEBIT Transactions → ML Prediction ---------- */
   const vec = vectorize(n);
   const result = predictCategory(vec);
 
-  if (result.score < CONFIDENCE_THRESHOLD) return DEFAULT_CATEGORY;
+  /* ---------- 5. Confidence Fallback ---------- */
+  if (result.score < CONFIDENCE_THRESHOLD) {
+    return DEFAULT_CATEGORY;
+  }
+
   return result.category;
-}
-
-/* ========================================================= */
-/*   2️⃣ SMART ASYNC VERSION (Semantic Embedding Power)        */
-/* ========================================================= */
-
-export async function categorizeTransactionSmart(
-  narration: string,
-  trxtype: "credit" | "debit"
-): Promise<string> {
-  if (!narration) return DEFAULT_CATEGORY;
-
-  const n = narration.toLowerCase();
-
-  // Merchant override always wins
-  for (const [category, keywords] of MERCHANT_RULES) {
-    if (keywords.some(k => n.includes(k))) return category;
-  }
-
-  // Credit rules remain rule-based
-  if (trxtype === "credit") {
-    return categorizeTransaction(narration, trxtype);
-  }
-
-  // Semantic model for debit
-  console.log("⚡ Semantic model running:", narration);  
-  
-  // Semantic model for debit (best generalization)
-  const semanticCategory = await categorizeTransactionSemantic(narration);
-
-  if (semanticCategory !== DEFAULT_CATEGORY) return semanticCategory;
-
-  // Final fallback: TF-IDF
-  return categorizeTransaction(narration, trxtype);
 }

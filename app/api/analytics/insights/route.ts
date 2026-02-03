@@ -2,7 +2,10 @@
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../../lib/supabaseServer";
-import { categorizeTransaction } from "../../../../utils/analytics/categorizer";
+//import { categorizeTransaction } from "../../../../utils/analytics/categorizer";
+import {
+  categorizeTransactionSmart,
+} from "../../../../utils/analytics/categorizer";
 
 function confidenceLabel(txnCount: number, months: number) {
   if (txnCount >= 30 && months >= 3) return "High";
@@ -104,10 +107,15 @@ export async function GET(req: Request) {
   const txnCount = txns.length;
   const confidence = confidenceLabel(txnCount, months);
 
-  const enriched = txns.map(tx => ({
-    ...tx,
-    category: categorizeTransaction(tx.narration ?? "", tx.trxtype)
-  }));
+  const enriched = await Promise.all(
+    txns.map(async tx => ({
+      ...tx,
+      category: await categorizeTransactionSmart(
+        tx.narration ?? "",
+        tx.trxtype
+      )
+    }))
+  );
 
   const debitTxns = enriched.filter(t => t.trxtype === "debit");
 
