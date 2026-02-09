@@ -1,3 +1,4 @@
+// app/analytics/components/MonthlyBarChart.tsx
 "use client";
 
 import {

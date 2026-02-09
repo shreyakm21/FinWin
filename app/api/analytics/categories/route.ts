@@ -74,7 +74,7 @@ export async function GET(req: Request) {
    */
   const { data: transactions } = await supabase
     .from("transaction")
-    .select("amount, narration, trxtype")
+    .select("amount, narration, trxtype, createdAt")
     .in("accountId", accountIds)
     .eq("trxtype", "debit");
 
@@ -98,6 +98,67 @@ export async function GET(req: Request) {
     totalExpense += tx.amount;
   }
 
+/* ---------- Weekday Spending ---------- */
+
+const weekdayMap: Record<string, number> = {
+  Mon: 0,
+  Tue: 0,
+  Wed: 0,
+  Thu: 0,
+  Fri: 0,
+  Sat: 0,
+  Sun: 0,
+};
+const weekdayCount: Record<string, number> = {
+  Mon: 0,
+  Tue: 0,
+  Wed: 0,
+  Thu: 0,
+  Fri: 0,
+  Sat: 0,
+  Sun: 0,
+};
+
+
+for (const tx of transactions) {
+  if (!tx.createdAt) continue;
+
+  const d = new Date(tx.createdAt).getDay(); // 0=Sun
+  const key =
+    d === 0
+      ? "Sun"
+      : d === 1
+      ? "Mon"
+      : d === 2
+      ? "Tue"
+      : d === 3
+      ? "Wed"
+      : d === 4
+      ? "Thu"
+      : d === 5
+      ? "Fri"
+      : "Sat";
+
+  weekdayMap[key] += tx.amount;
+  weekdayCount[key] += 1;
+}
+const weekdayAvg: Record<string, number> = {
+  Mon: 0,
+  Tue: 0,
+  Wed: 0,
+  Thu: 0,
+  Fri: 0,
+  Sat: 0,
+  Sun: 0,
+};
+
+for (const day in weekdayMap) {
+  const count = weekdayCount[day];
+  weekdayAvg[day] =
+    count > 0 ? Math.round(weekdayMap[day] / count) : 0;
+}
+
+
   const { searchParams } = new URL(req.url);
   const limit = Number(searchParams.get("limit") ?? 5);
 
@@ -106,5 +167,12 @@ export async function GET(req: Request) {
     .slice(0, limit)
     .map(([category, amount]) => ({ category, amount }));
 
-  return NextResponse.json({ categories, totalExpense });
+  return NextResponse.json({
+    categories,
+    totalExpense,
+    weekdaySpending: weekdayAvg,
+    weekdayTotals: weekdayMap
+
+  });
+
 }

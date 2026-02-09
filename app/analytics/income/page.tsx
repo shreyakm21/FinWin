@@ -75,6 +75,107 @@ const IncomeAnalyticsPage: React.FC = () => {
       ? [...monthly].sort((a, b) => b.credit - a.credit)[0]
       : null;
 
+  /* ---------- Cashflow Intelligence ---------- */
+
+  const totalExpense = monthly.reduce(
+    (sum: number, m: any) => sum + (m.debit || 0),
+    0
+  );
+
+  const netCashflow = totalIncome - totalExpense;
+
+  const burnRate =
+    totalIncome > 0 ? Math.round((totalExpense / totalIncome) * 100) : 0;
+
+  const savingsRate =
+    totalIncome > 0 ? Math.round((netCashflow / totalIncome) * 100) : 0;
+
+  /* --- Cashflow Risk --- */
+  let riskLevel = "Healthy";
+  if (burnRate > 95) riskLevel = "High Risk";
+  else if (burnRate > 80) riskLevel = "Moderate Risk";
+
+  /* --- Negative Cashflow --- */
+  const negativeMonths = monthly.filter(m => m.debit > m.credit).length;
+
+  /* --- Runway Estimate (months income can sustain spending) --- */
+  let runway = "Stable";
+  if (avgMonthlyIncome > 0) {
+    const avgExpense =
+      monthly.length > 0
+        ? Math.round(totalExpense / monthly.length)
+        : 0;
+
+    const monthsCover = avgMonthlyIncome > 0
+      ? Math.round(avgMonthlyIncome / avgExpense)
+      : 0;
+
+    if (monthsCover < 1) runway = "Deficit";
+    else if (monthsCover < 2) runway = "Tight";
+    else runway = "Comfortable";
+  }
+
+/* ---------- Financial Health Score ---------- */
+
+// Normalize helpers
+const clamp = (v: number, min = 0, max = 100) =>
+  Math.max(min, Math.min(max, v));
+
+/* --- Savings Score --- */
+const savingsScore = clamp(savingsRate * 2); // 50% savings → 100
+
+/* --- Burn Score (lower burn = better) --- */
+const burnScore = clamp(100 - burnRate);
+
+/* --- Cashflow Stability --- */
+const stabilityScore = clamp(
+  negativeMonths === 0 ? 100 : 100 - negativeMonths * 20
+);
+
+/* --- Volatility Score (lower volatility = better) --- */
+let volatilityPenalty = 0;
+if (monthly.length >= 3) {
+  const expenses = monthly.map(m => m.debit);
+  const mean = expenses.reduce((a, b) => a + b, 0) / expenses.length;
+  const variance =
+    expenses.reduce((s, v) => s + Math.pow(v - mean, 2), 0) /
+    expenses.length;
+  const stdDev = Math.sqrt(variance);
+  const volatilityPct = (stdDev / mean) * 100;
+  volatilityPenalty = clamp(volatilityPct);
+}
+const volatilityScore = clamp(100 - volatilityPenalty);
+
+/* --- Income Stability Score --- */
+let incomeStabilityScore = 80;
+if (monthly.length >= 3) {
+  const incomes = monthly.map(m => m.credit);
+  const mean = incomes.reduce((a, b) => a + b, 0) / incomes.length;
+  const variance =
+    incomes.reduce((s, v) => s + Math.pow(v - mean, 2), 0) /
+    incomes.length;
+  const stdDev = Math.sqrt(variance);
+  const fluct = (stdDev / mean) * 100;
+  incomeStabilityScore = clamp(100 - fluct * 2);
+}
+
+/* --- Weighted Final Score --- */
+const healthScore = Math.round(
+  savingsScore * 0.3 +
+  burnScore * 0.2 +
+  stabilityScore * 0.2 +
+  volatilityScore * 0.15 +
+  incomeStabilityScore * 0.15
+);
+
+/* --- Score Label --- */
+let healthLabel = "Risky 🔴";
+if (healthScore >= 80) healthLabel = "Excellent 🟢";
+else if (healthScore >= 60) healthLabel = "Good 🟡";
+else if (healthScore >= 40) healthLabel = "Needs Attention 🟠";
+
+  
+
   // ✅ early return AFTER hooks
   if (loading) {
     return <AnalyticsSkeleton />;
@@ -89,6 +190,35 @@ const IncomeAnalyticsPage: React.FC = () => {
       <p style={{ marginTop: "8px", color: "#555" }}>
         Understand how money flows into your account
       </p>
+
+      {/* Financial Health Score */}
+      <div
+        style={{
+          marginTop: "20px",
+          padding: "20px",
+          borderRadius: "14px",
+          background: "#f0fdf4",
+          border: "1px solid #bbf7d0",
+          textAlign: "center",
+        }}
+      >
+        <div style={{ fontSize: 14, color: "#555" }}>
+          Financial Health Score
+        </div>
+
+        <div style={{ fontSize: 40, fontWeight: "bold", marginTop: 6 }}>
+          {healthScore}
+        </div>
+
+        <div style={{ fontSize: 16, marginTop: 4 }}>
+          {healthLabel}
+        </div>
+
+        <div style={{ marginTop: 8, fontSize: 13, color: "#666" }}>
+          Based on savings, spending, stability and cashflow behaviour
+        </div>
+      </div>
+
 
       {/* KPI row */}
       <div
@@ -110,6 +240,21 @@ const IncomeAnalyticsPage: React.FC = () => {
               : `Across ${activeIncomeMonths} months`
           }
         />
+
+        <KPI title="Net Cashflow" value={netCashflow} />
+
+        <KPI
+          title="Burn Rate"
+          value={burnRate}
+          hint="% of income spent"
+        />
+
+        <KPI
+          title="Savings Rate"
+          value={savingsRate}
+          hint="% of income saved"
+        />
+
 
         {highestIncomeMonth?.credit > 0 && (
           <KPI
@@ -133,6 +278,51 @@ const IncomeAnalyticsPage: React.FC = () => {
           }))}
         />
       </div>
+
+      {/* Cashflow Insights */}
+      <div
+        style={{
+          marginTop: "32px",
+          padding: "16px",
+          borderRadius: "12px",
+          background: "#f8fafc",
+          border: "1px solid #e5e7eb",
+        }}
+      >
+        <strong>Cashflow Health</strong>
+
+        <ul style={{ marginTop: "8px", lineHeight: 1.7 }}>
+          <li>
+            Net cashflow:{" "}
+            <strong>
+              {netCashflow >= 0 ? "Positive" : "Negative"}
+            </strong>
+          </li>
+
+          <li>
+            Burn rate: <strong>{burnRate}%</strong> of income spent
+          </li>
+
+          <li>
+            Savings rate: <strong>{savingsRate}%</strong>
+          </li>
+
+          <li>
+            Cashflow risk level: <strong>{riskLevel}</strong>
+          </li>
+
+          {negativeMonths > 0 && (
+            <li>
+              ⚠️ You had {negativeMonths} month(s) with negative cashflow.
+            </li>
+          )}
+
+          <li>
+            Runway status: <strong>{runway}</strong>
+          </li>
+        </ul>
+      </div>
+
 
       {/* Explanation */}
       <div

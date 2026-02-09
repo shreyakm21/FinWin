@@ -69,6 +69,15 @@ const ANALYTICS_TILES: AnalyticsTile[] = [
     gradientTo: 'to-cyan-600/20',
     borderColor: 'border-cyan-500/30',
   },
+{
+  title: 'Help & Glossary',
+  description: 'Understand financial terms, metrics, and how analytics work',
+  emoji: '📘',
+  route: '/analytics/help',
+  gradientFrom: 'from-slate-500/20',
+  gradientTo: 'to-slate-600/20',
+  borderColor: 'border-slate-500/30',
+},
 ];
 
 const AnalyticsHubPage: React.FC = () => {
