@@ -1,5 +1,4 @@
 // app/reminders/page.tsx
-
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -26,54 +25,34 @@ const RemindersPage: React.FC = () => {
   const [frequency, setFrequency] = useState("MONTHLY");
   const [amount, setAmount] = useState<number | "">("");
 
-  /* ===========================
-     🔹 Fetch User Reminders
-  ============================ */
   const fetchReminders = async () => {
     setLoading(true);
-
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData?.session?.access_token;
-
     if (!token) {
       alert("Not logged in!");
       return;
     }
-
     const res = await fetch("/api/reminders", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
-
     const json = await res.json();
-
-    if (Array.isArray(json)) {
-      setReminders(json);
-    } else {
-      setReminders([]);
-    }
+    setReminders(Array.isArray(json) ? json : []);
     setLoading(false);
-    };
+  };
 
   useEffect(() => {
     fetchReminders();
   }, []);
 
-  /* ===========================
-     🔹 Create Reminder
-  ============================ */
   const createReminder = async () => {
     if (!displayName || !accountNumber) {
       alert("Please fill all required fields");
       return;
     }
-
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData?.session?.access_token;
-
     if (!token) return;
-
     const res = await fetch("/api/reminders/create", {
       method: "POST",
       headers: {
@@ -87,106 +66,85 @@ const RemindersPage: React.FC = () => {
         amount: amount === "" ? null : amount,
       }),
     });
-
     const json = await res.json();
-
     if (json?.error) {
       alert("Failed: " + json.error);
       return;
     }
-
     alert("✅ Reminder Created Successfully!");
-
-    // Reset Form
     setDisplayName("");
     setAccountNumber("");
     setFrequency("MONTHLY");
     setAmount("");
-
     fetchReminders();
   };
 
-  /* ===========================
-     🔹 Cancel Reminder
-  ============================ */
   const cancelReminder = async (reminderId: number) => {
     const { data } = await supabase.auth.getSession();
     const token = data?.session?.access_token;
     if (!token) return;
-
     const res = await fetch("/api/reminders/cancel", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ reminderId }),
     });
-
     if (res.ok) {
-      // ✅ remove from UI after Supabase update
       setReminders(prev => prev.filter(r => r.reminderId !== reminderId));
     } else {
       alert("Failed to cancel reminder");
     }
   };
 
-
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-8 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">
-          Payment Reminders
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-slate-0 tracking-wide">
+          💳 Payment Reminders
         </h1>
+          <Link
+            href="/finwin_dashboard"
+            className="text-black text-2xl md:text-3xl hover:text-gray-700 transition"
+          >
+            🏠︎
+          </Link>
 
-        <Link
-          href="/finwin_dashboard"
-          className="text-blue-600 hover:underline text-sm"
-        >
-          ← Back to Dashboard
-        </Link>
       </div>
 
-      {/* ===========================
-          🔹 Create Reminder Form
-      ============================ */}
-      <div className="bg-white shadow rounded-lg p-5 mb-8">
-        <h2 className="font-semibold text-lg mb-4">
+      {/* Create Reminder Form */}
+      <div className="rounded-xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 
+                      border border-slate-700/50 shadow-lg p-6 mb-10">
+        <h2 className="text-lg font-semibold text-slate-100 mb-4">
           Create New Reminder
         </h2>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Display Name */}
           <input
             placeholder="Reminder Name (e.g. Netflix)"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="border p-2 rounded"
+            className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 
+                       focus:ring-2 focus:ring-indigo-500 outline-none"
           />
-
-          {/* Account Number */}
           <input
             placeholder="Pay To Account Number"
             value={accountNumber}
             onChange={(e) => setAccountNumber(e.target.value)}
-            className="border p-2 rounded"
+            className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 
+                       focus:ring-2 focus:ring-indigo-500 outline-none"
           />
-
-          {/* Amount */}
           <input
             placeholder="Amount (optional)"
             type="number"
             value={amount}
             onChange={(e) => setAmount(Number(e.target.value))}
-            className="border p-2 rounded"
+            className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 
+                       focus:ring-2 focus:ring-indigo-500 outline-none"
           />
-
-          {/* Frequency */}
           <select
             value={frequency}
             onChange={(e) => setFrequency(e.target.value)}
-            className="border p-2 rounded"
+            className="bg-slate-800 border border-slate-700 rounded-lg p-3 text-slate-200 
+                       focus:ring-2 focus:ring-indigo-500 outline-none"
           >
             <option value="MONTHLY">Monthly</option>
             <option value="QUARTERLY">Quarterly</option>
@@ -194,67 +152,56 @@ const RemindersPage: React.FC = () => {
             <option value="YEARLY">Yearly</option>
           </select>
         </div>
-
         <button
           onClick={createReminder}
-          className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="mt-6 w-full md:w-auto bg-gradient-to-r from-indigo-500 via-cyan-500 to-purple-500 
+                     text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition"
         >
           + Add Reminder
         </button>
       </div>
 
-      {/* ===========================
-          🔹 Reminder List
-      ============================ */}
-      <div className="bg-white shadow rounded-lg p-5">
-        <h2 className="font-semibold text-lg mb-4">
-          Your Active Reminders
-        </h2>
-
-        {loading ? (
-          <p className="text-gray-500">Loading reminders...</p>
-        ) : reminders.length === 0 ? (
-          <p className="text-gray-500">No reminders created yet.</p>
-        ) : (
-          <div className="space-y-3">
-            {reminders.map((r) => (
-              <div
-                key={r.reminderId}
-                className="border rounded p-4 flex justify-between items-center"
-              >
-                <div>
-                  <p className="font-semibold">{r.displayName}</p>
-                  <p className="text-sm text-gray-600">
-                    Pay To: {r.accountNumber}
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    Frequency: {r.frequency}
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    Next Trigger:{" "}
-                    {new Date(r.nextTriggerAt).toLocaleString("en-IN")}
-                  </p>
-
-                  {r.amount && (
-                    <p className="text-sm text-gray-700">
-                      Amount: ₹{r.amount}
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => cancelReminder(r.reminderId)}
-                  className="text-red-600 text-sm hover:underline"
-                >
-                  Cancel
-                </button>
-              </div>
-            ))}
+{/* Reminder List */}
+<div className="rounded-xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 
+                border border-slate-700/50 shadow-lg p-6">
+  <h2 className="text-lg font-semibold text-slate-100 mb-4">
+    Your Active Reminders
+  </h2>
+  {loading ? (
+    <p className="text-slate-400">Loading reminders...</p>
+  ) : reminders.length === 0 ? (
+    <p className="text-slate-400">No reminders created yet.</p>
+  ) : (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {reminders.map((r) => (
+        <div
+          key={r.reminderId}
+          className="rounded-lg border border-slate-700 bg-slate-800/60 p-5 
+                     flex flex-col justify-between shadow hover:shadow-lg transition"
+        >
+          <div>
+            <p className="font-semibold text-slate-100">{r.displayName}</p>
+            <p className="text-sm text-slate-400">Pay To: {r.accountNumber}</p>
+            <p className="text-sm text-slate-400">Frequency: {r.frequency}</p>
+            <p className="text-sm text-slate-400">
+              Next Trigger: {new Date(r.nextTriggerAt).toLocaleString("en-IN")}
+            </p>
+            {r.amount && (
+              <p className="text-sm text-indigo-400">Amount: ₹{r.amount}</p>
+            )}
           </div>
-        )}
-      </div>
+          <button
+            onClick={() => cancelReminder(r.reminderId)}
+            className="mt-4 text-red-400 text-sm font-medium hover:text-red-300 transition self-end"
+          >
+            Cancel
+          </button>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
     </div>
   );
 };

@@ -1,4 +1,3 @@
-// app/GT/components/GoalForm.tsx
 "use client";
 
 import { useState } from "react";
@@ -18,10 +17,20 @@ export default function GoalForm({ onSuccess }: any) {
   const [type, setType] = useState("SPEND_LIMIT");
   const [category, setCategory] = useState("");
   const [frequency, setFrequency] = useState("MONTHLY");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
+    if (!title.trim() || !amount) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    setLoading(true);
     const { data: session } = await supabase.auth.getSession();
-    if (!session?.session) return;
+    if (!session?.session) {
+      setLoading(false);
+      return;
+    }
 
     const payload: any = {
       title,
@@ -44,6 +53,8 @@ export default function GoalForm({ onSuccess }: any) {
       body: JSON.stringify(payload),
     });
 
+    setLoading(false);
+
     if (res.ok) {
       onSuccess();
     } else {
@@ -52,43 +63,112 @@ export default function GoalForm({ onSuccess }: any) {
   };
 
   return (
-    <div className="gt-form">
-      <input
-        placeholder="Goal title"
-        value={title}
-        onChange={e => setTitle(e.target.value)}
-      />
+    <div className="w-full max-w-md space-y-3">
+      {/* Goal Title Input */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-200 mb-1">
+          Goal Title
+        </label>
+        <input
+          placeholder="e.g., Shopping Budget"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+        />
+      </div>
 
-      <input
-        type="number"
-        placeholder="Limit amount"
-        value={amount}
-        onChange={e => setAmount(e.target.value)}
-      />
+      {/* Amount Input */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-200 mb-1">
+          Limit Amount (₹)
+        </label>
+        <input
+          type="number"
+          placeholder="Enter amount"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+        />
+      </div>
 
-      <select value={type} onChange={e => setType(e.target.value)}>
-        <option value="SPEND_LIMIT">Overall Spend</option>
-        <option value="CATEGORY_LIMIT">Category Spend</option>
-      </select>
-
-      {type === "CATEGORY_LIMIT" && (
-        <select value={category} onChange={e => setCategory(e.target.value)}>
-          <option value="">Select category</option>
-          {CATEGORIES.map(c => (
-            <option key={c} value={c}>{c}</option>
-          ))}
+      {/* Goal Type Select */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-200 mb-1">
+          Goal Type
+        </label>
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+        >
+          <option value="SPEND_LIMIT" className="bg-slate-900">
+            Overall Spend
+          </option>
+          <option value="CATEGORY_LIMIT" className="bg-slate-900">
+            Category Spend
+          </option>
         </select>
+      </div>
+
+      {/* Category Select - Conditional */}
+      {type === "CATEGORY_LIMIT" && (
+        <div className="animate-in fade-in duration-200">
+          <label className="block text-xs font-semibold text-slate-200 mb-1">
+            Select Category
+          </label>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+          >
+            <option value="" className="bg-slate-900">
+              Select category
+            </option>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c} className="bg-slate-900">
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
       )}
 
-      {/* 🔽 Frequency semantics fixed */}
-      <select value={frequency} onChange={e => setFrequency(e.target.value)}>
-        <option value="PER_TRANSFER">Per Transaction</option>
-        <option value="DAILY">Daily (cumulative)</option>
-        <option value="MONTHLY">Monthly (cumulative)</option>
-      </select>
+      {/* Frequency Select */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-200 mb-1">
+          Frequency
+        </label>
+        <select
+          value={frequency}
+          onChange={(e) => setFrequency(e.target.value)}
+          className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+        >
+          <option value="PER_TRANSFER" className="bg-slate-900">
+            Per Transaction
+          </option>
+          <option value="DAILY" className="bg-slate-900">
+            Daily (cumulative)
+          </option>
+          <option value="MONTHLY" className="bg-slate-900">
+            Monthly (cumulative)
+          </option>
+        </select>
+      </div>
 
-      <button className="transaction-btn-primary" onClick={handleSubmit}>
-        Save Goal
+      {/* Submit Button */}
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        className="w-full px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:from-slate-600 disabled:to-slate-700 text-white font-semibold text-sm rounded-lg transition-all duration-200 shadow-lg shadow-blue-500/30 disabled:shadow-none flex items-center justify-center gap-2 mt-1"
+      >
+        {loading ? (
+          <>
+            <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            Creating...
+          </>
+        ) : (
+          "Save Goal"
+        )}
       </button>
     </div>
   );

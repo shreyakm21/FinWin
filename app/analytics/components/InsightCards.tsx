@@ -1,3 +1,4 @@
+// app/analytics/components/InsightCards.tsx
 import InsightCard from "./InsightCard";
 
 export default function InsightCards({ insights }: any) {
@@ -5,8 +6,14 @@ export default function InsightCards({ insights }: any) {
     topExpenseCategory,
     savingsRate,
     biggestPurchase,
-    savingsProjection
-  } = insights.insights;
+    savingsProjection,
+    weekendVsWeekday,
+    trend,
+    unusualTransaction,
+    cashflowRisk,
+    behaviour
+  } = insights ?? {};
+
 
   return (
     <div
@@ -54,14 +61,67 @@ export default function InsightCards({ insights }: any) {
 
       {/* Savings Projection */}
       <InsightCard
-        title="Savings Goal"
+        title="Next Month Forecast"
         content={
           savingsProjection
-            ? `₹${savingsProjection.goal.toLocaleString()} in ${savingsProjection.monthsRequired} months`
+            ? `₹${savingsProjection.nextMonthExpense.toLocaleString()} expected expense`
             : "Projection unavailable"
         }
-        subtext="Assumes current income & spending pattern"
+        subtext={
+          savingsProjection
+            ? savingsProjection.expectedSavings >= 0
+              ? `Expected savings ₹${savingsProjection.expectedSavings.toLocaleString()}`
+              : `Possible deficit ₹${Math.abs(savingsProjection.expectedSavings).toLocaleString()}`
+            : "Based on recent spending pattern"
+        }
       />
+
+      {/* Spending Trend */}
+      {trend && (
+        <InsightCard
+          title="Spending Trend"
+          content={trend}
+          subtext="Based on recent monthly expenses"
+        />
+      )}
+
+      {/* Weekend Behaviour */}
+      {weekendVsWeekday && (
+        <InsightCard
+          title="Spending Pattern"
+          content={weekendVsWeekday.trend}
+          subtext={`Weekend ₹${weekendVsWeekday.weekend.toLocaleString()} vs Weekday ₹${weekendVsWeekday.weekday.toLocaleString()}`}
+        />
+      )}
+
+      {/* Cashflow Risk */}
+      {cashflowRisk && (
+        <InsightCard
+          title="Cashflow Health"
+          content={cashflowRisk}
+          subtext="Income vs Expense stability"
+        />
+      )}
+
+      {/* Behaviour Tag */}
+      {behaviour && (
+        <InsightCard
+          title="Financial Behaviour"
+          content={behaviour}
+          subtext="Derived from savings & spending pattern"
+        />
+      )}
+
+      {/* Unusual Transaction */}
+      {unusualTransaction && (
+        <InsightCard
+          title="Unusual Transaction"
+          content={`₹${unusualTransaction.amount.toLocaleString()}`}
+          subtext={`${unusualTransaction.narration} • ${unusualTransaction.date}`}
+        />
+      )}
+
+
     </div>
   );
 }

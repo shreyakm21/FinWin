@@ -106,7 +106,7 @@ const InsightsAnalyticsPage: React.FC = () => {
 
       {/* Insight cards */}
       <div style={{ marginTop: "32px" }}>
-        <InsightCards insights={insightsData} />
+        <InsightCards insights={insights} />
       </div>
 
       {/* Human-readable summaries */}
@@ -145,6 +145,53 @@ const InsightsAnalyticsPage: React.FC = () => {
               ⚠️ No income data was detected — savings insights may be limited.
             </li>
           )}
+
+          {insights.weekendVsWeekday && (
+            <li>
+              📅 Your spending is <strong>{insights.weekendVsWeekday.trend}</strong>
+              (Weekend ₹{insights.weekendVsWeekday.weekend.toLocaleString()} vs
+              Weekday ₹{insights.weekendVsWeekday.weekday.toLocaleString()}).
+            </li>
+          )}
+
+          {insights.trend && (
+            <li>📈 Your monthly spending trend is <strong>{insights.trend}</strong>.</li>
+          )}
+
+          {insights.unusualTransaction && (
+            <li>
+              🔥 Unusually large purchase detected: ₹
+              {insights.unusualTransaction.amount.toLocaleString()} on{" "}
+              {insights.unusualTransaction.date}.
+            </li>
+          )}
+
+          {insights.cashflowRisk && (
+            <li>
+              💸 Cash-flow health: <strong>{insights.cashflowRisk}</strong>.
+            </li>
+          )}
+
+          {insights.savingsProjection && (
+            <li>
+              📊 Expected next month expense ₹
+              {insights.savingsProjection.nextMonthExpense.toLocaleString()},
+              {insights.savingsProjection.expectedSavings >= 0 ? (
+                <> projected savings ₹{insights.savingsProjection.expectedSavings.toLocaleString()}.</>
+              ) : (
+                <> potential deficit ₹{Math.abs(insights.savingsProjection.expectedSavings).toLocaleString()}.</>
+              )}
+            </li>
+          )}
+
+
+          {confidence.label !== "Low" && insights.behaviour && (
+            <li>
+              🧠 Financial behaviour pattern: <strong>{insights.behaviour}</strong>.
+            </li>
+          )}
+
+
         </ul>
       </div>
     </div>

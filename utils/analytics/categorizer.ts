@@ -3,6 +3,15 @@
 import modelData from "./category_model.json";
 import { categorizeTransactionSemantic } from "./semanticCategorizer";
 
+/* ---------------- In-Memory Cache ---------------- */
+
+// narration+type → category
+const semanticCache = new Map<string, string>();
+
+// optional: prevent unlimited growth
+const MAX_CACHE_SIZE = 1000;
+
+
 /* ---------------- FinWin Categories ---------------- */
 const DEFAULT_CATEGORY = "Others";
 
@@ -143,24 +152,42 @@ export async function categorizeTransactionSmart(
 
   const n = narration.toLowerCase();
 
-  // Merchant override always wins
+  /* ---------- 1. Merchant override always wins ---------- */
   for (const [category, keywords] of MERCHANT_RULES) {
     if (keywords.some(k => n.includes(k))) return category;
   }
 
-  // Credit rules remain rule-based
+  /* ---------- 2. Credit stays rule-based ---------- */
   if (trxtype === "credit") {
     return categorizeTransaction(narration, trxtype);
   }
 
-  // Semantic model for debit
-  console.log("⚡ Semantic model running:", narration);  
-  
-  // Semantic model for debit (best generalization)
+  /* ---------- 3. Cache Lookup ---------- */
+  const cacheKey = `${trxtype}:${n}`;
+
+  if (semanticCache.has(cacheKey)) {
+    return semanticCache.get(cacheKey)!;
+  }
+
+  /* ---------- 4. Semantic Model Prediction ---------- */
+  console.log("⚡ Semantic model running:", narration);
+
   const semanticCategory = await categorizeTransactionSemantic(narration);
 
-  if (semanticCategory !== DEFAULT_CATEGORY) return semanticCategory;
+  let finalCategory = semanticCategory;
 
-  // Final fallback: TF-IDF
-  return categorizeTransaction(narration, trxtype);
+  /* ---------- 5. If semantic fails → TF-IDF fallback ---------- */
+  if (semanticCategory === DEFAULT_CATEGORY) {
+    finalCategory = categorizeTransaction(narration, trxtype);
+  }
+
+  /* ---------- 6. Store in Cache ---------- */
+  if (semanticCache.size > MAX_CACHE_SIZE) {
+    // simple eviction: clear all when full
+    semanticCache.clear();
+  }
+
+  semanticCache.set(cacheKey, finalCategory);
+
+  return finalCategory;
 }

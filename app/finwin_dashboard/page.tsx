@@ -229,6 +229,8 @@ const [upcomingBill, setUpcomingBill] = useState<any>(null);
 const [monthlyFlow, setMonthlyFlow] = useState<
   { month: string; credit: number; debit: number }[]
 >([]);
+const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
 
 /* ============================
    ✅ Fetch Monthly Income/Expense
@@ -240,7 +242,8 @@ useEffect(() => {
 
     if (!token) return;
 
-    const res = await fetch("/api/analytics/monthly", {
+    //const res = await fetch("/api/analytics/monthly", {
+    const res = await fetch(`/api/analytics/monthly?year=${selectedYear}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -261,17 +264,17 @@ if (json?.monthly) {
   };
 
   fetchMonthlyFlow();
-}, []);
+//}, []);
+}, [selectedYear]);
 
 /* ============================
    ✅ Normalize Months (Jan–Dec)
 ============================ */
 const normalizeMonthlyFlow = () => {
-  const now = new Date();
   const months: string[] = [];
 
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(selectedYear, i, 1); // ✅ use selectedYear
     months.push(d.toISOString().slice(0, 7));
   }
 
@@ -285,6 +288,7 @@ const normalizeMonthlyFlow = () => {
     };
   });
 };
+
 
 /* ============================
    ✅ Chart Render (Dynamic)
@@ -402,7 +406,7 @@ useEffect(() => {
   return () => {
     chartInstance.current?.destroy();
   };
-}, [monthlyFlow]);
+}, [monthlyFlow, selectedYear]);
 
 
 //Upcoming Bills FETCH
@@ -752,7 +756,7 @@ useEffect(() => {
 
           {/* Overview Cards */}
           <section className="mb-8">
-            <h2 className="text-lg font-bold text-slate-900 mb-6">Overview</h2>
+            <h2 className="text-lg font-bold text-slate-100 mb-6">Overview</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Account Balance Card */}
               <div className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow border border-slate-200">
@@ -915,24 +919,43 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* Chart */}
-            <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-md border border-slate-200">
-              <h2 className="text-lg font-bold text-slate-900 mb-2">Monthly Cash Flow</h2>
-              <p className="text-sm text-slate-600 mb-6">Income vs Expenses trends</p>
-              <div className="h-64">
-                <canvas id="monthlyFlowChart" ref={chartRef}></canvas>
-              </div>
-              <div className="mt-6 flex gap-6 text-sm">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span className="text-slate-600">Income</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="text-slate-600">Expenses</span>
-                </div>
-              </div>
-            </div>
+{/* Chart */}
+<div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-md border border-slate-200">
+  <h2 className="text-lg font-bold text-slate-900 mb-2">Monthly Cash Flow</h2>
+
+  {/* 🔽 Added Year Filter */}
+  <div className="flex justify-between items-center mb-4">
+    <p className="text-sm text-slate-600">Income vs Expenses trends</p>
+
+    <select
+      value={selectedYear}
+      onChange={(e) => setSelectedYear(Number(e.target.value))}
+      className="text-xs border border-slate-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+    >
+      {[2026, 2025, 2024].map((y) => (
+        <option key={y} value={y}>
+          {y}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <div className="h-64">
+    <canvas id="monthlyFlowChart" ref={chartRef}></canvas>
+  </div>
+
+  <div className="mt-6 flex gap-6 text-sm">
+    <div className="flex items-center space-x-2">
+      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+      <span className="text-slate-600">Income</span>
+    </div>
+    <div className="flex items-center space-x-2">
+      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+      <span className="text-slate-600">Expenses</span>
+    </div>
+  </div>
+</div>
+
           </section>
 
           {/* Recent Transactions Table */}
@@ -943,10 +966,10 @@ useEffect(() => {
                 <thead>
                   <tr className="border-b border-slate-200">
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">DATE</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">NARATION</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">TYPE</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">AMOUNT</th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700">MODE</th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700">FROM/TO</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">STATUS</th>
                     
                   </tr>
                 </thead>

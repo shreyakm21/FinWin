@@ -1,3 +1,4 @@
+// app/analytics/components/InsightCard.tsx
 type InsightCardProps = {
   title: string;
   content: string;
@@ -10,8 +11,11 @@ export default function InsightCard({ title, content, subtext }: InsightCardProp
       style={{
         padding: "18px",
         borderRadius: "12px",
-        background: "#111",
-        color: "#fff"
+        background: "#fff",
+        color: "#111",
+        border: "1px solid #e5e7eb",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.06)"
+
       }}
     >
       <div style={{ fontSize: "14px", opacity: 0.7 }}>{title}</div>

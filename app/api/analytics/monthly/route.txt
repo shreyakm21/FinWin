@@ -2,6 +2,7 @@
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../../lib/supabaseServer";
+import { start } from "repl";
 
 export async function GET(req: Request) {
   /**
@@ -18,6 +19,11 @@ export async function GET(req: Request) {
       { status: 401 }
     );
   }
+
+const { searchParams } = new URL(req.url);
+const yearParam = searchParams.get("year");
+const selectedYear = yearParam ? Number(yearParam) : new Date().getFullYear();
+
 
   const supabase = supabaseAdmin();
 
@@ -54,6 +60,9 @@ export async function GET(req: Request) {
   /**
    * 📊 3️⃣ Fetch transactions for this user
    */
+const start = `${selectedYear}-01-01`;
+const end = `${selectedYear}-12-31`;
+
   const { data, error } = await supabase
     .from("transaction")
     .select(`
@@ -62,7 +71,9 @@ export async function GET(req: Request) {
       createdAt,
       account!inner ( userId )
     `)
-    .eq("account.userId", userId);
+    .eq("account.userId", userId)
+    .gte("createdAt", start)
+    .lte("createdAt", end);
 
   if (error || !data || data.length === 0) {
     return NextResponse.json({
@@ -115,6 +126,7 @@ export async function GET(req: Request) {
    * 📤 5️⃣ Response
    */
   return NextResponse.json({
+    year: selectedYear,
     monthly,
     kpis: {
       totalIncome,

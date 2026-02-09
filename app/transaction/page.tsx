@@ -121,6 +121,11 @@ const TransferPage: React.FC = () => {
                   <option value="">Select Payment Mode</option>
                   <option value="UPIT">UPI</option>
                   <option value="NEFT">NEFT</option>
+                  <option value="RTGS">RTGS</option>
+                  <option value="CARD">CARD</option>
+                  <option value="CSHW">CSHW</option>
+                  <option value="CSHD">CSHD</option>
+                  <option value="CHEQ">CHEQ</option>
                 </select>
               </div>
 
