@@ -1,0 +1,212 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["banking"]
+}
+
+model Role {
+  roleId Int    @id @default(autoincrement())
+  name   String @unique
+  User   User[]
+
+  @@schema("banking")
+}
+
+model User {
+  userId     Int       @id @default(autoincrement())
+  email      String    @unique
+  password   String
+  firstName  String
+  lastName   String
+  city       String?
+  address    String?
+  pincode    String?
+  phoneNo    String
+  roleId     Int
+
+  createdAt  DateTime  @default(now())
+  lastLogin  DateTime?
+
+  Account    Account[]
+  Role       Role      @relation(fields: [roleId], references: [roleId])
+
+  @@schema("banking")
+}
+
+model Account {
+  accountId   Int       @id @default(autoincrement())
+  accNo       String    @unique
+  acctype     String
+  balance     Float     @default(0.0)
+  userId      Int
+  branchId    Int
+  createdAt   DateTime  @default(now())
+
+  User        User      @relation(fields: [userId], references: [userId])
+  Branch      Branch    @relation(fields: [branchId], references: [branchId])
+  Transaction Transaction[]
+
+  @@unique([accountId, accNo])
+  @@schema("banking")
+}
+
+model Transaction {
+  transactionId BigInt             @id @default(autoincrement())
+  accountId     Int
+  accNo         String
+  branchId      Int
+  amount        Float
+
+  trxtype       TransactionType
+  mode          TransactionMode
+  status        TransactionStatus
+
+
+  narration     String
+  refNo         String
+  fromTo        String
+  createdAt     DateTime           @default(now())
+
+  Account       Account @relation(fields: [accountId, accNo], references: [accountId, accNo])
+
+  Branch        Branch  @relation(fields: [branchId], references: [branchId])
+
+  @@schema("banking")
+}
+
+model Branch {
+  branchId     Int           @id @default(autoincrement())
+  city         String
+  ifscCode     String        @unique
+  address      String
+
+  Account      Account[]
+  Transaction  Transaction[]
+
+  @@schema("banking")
+}
+
+
+enum TransactionType {
+  credit
+  debit
+
+  @@schema("banking")
+}
+
+enum TransactionMode {
+  UPIT
+  NEFT
+  RTGS
+  CSHD
+  CSHW
+  CHEQ
+  CARD
+
+  @@schema("banking")
+}
+
+enum TransactionStatus {
+  pending
+  success
+  failed
+  reversed
+
+  @@schema("banking")
+}
+
+enum GoalType {
+  SPEND_LIMIT
+  CATEGORY_LIMIT
+  REMINDER
+
+  @@schema("banking")
+}
+
+enum GoalFrequency {
+  PER_TRANSFER
+  DAILY
+  WEEKLY
+  MONTHLY
+  CUSTOM
+  RECURRING
+
+  @@schema("banking")
+}
+
+enum ReminderFrequency {
+  MONTHLY
+  QUARTERLY
+  HALFYEARLY
+  YEARLY
+  CUSTOM
+
+  @@schema("banking")
+}
+
+model UserGoal {
+  goalId         Int       @id @default(autoincrement())
+  userId         Int
+
+  goalType       GoalType
+  title          String
+  description    String?
+
+  // Time window
+  startDate      DateTime
+  endDate        DateTime?
+
+  frequency      GoalFrequency
+
+  // For spend / category goals
+  limitAmount    Float?
+  categoryName   String?   // e.g. "Entertainment"
+
+  violationCount Int       @default(0)
+  isActive       Boolean   @default(true)
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId])
+  @@schema("banking")
+}
+
+model GoalViolation {
+  violationId    Int       @id @default(autoincrement())
+  goalId         Int
+  transactionId  BigInt
+
+  attemptedAmount Float
+  exceededBy      Float
+
+  createdAt      DateTime  @default(now())
+
+  @@index([goalId])
+  @@index([transactionId])
+  @@schema("banking")
+}
+
+model PaymentReminder {
+  reminderId     Int       @id @default(autoincrement())
+  userId         Int
+
+  displayName    String    // e.g. EXT-MHCEB
+  accountNumber  String
+
+  frequency      ReminderFrequency
+  scheduleJson   Json      // cron-like rule or custom config
+
+  nextTriggerAt  DateTime
+  lastTriggeredAt DateTime?
+
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+
+  @@index([userId])
+  @@schema("banking")
+}
