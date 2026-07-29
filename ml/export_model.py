@@ -1,5 +1,6 @@
 # ml/export_model.py
 
+#Used to save trained models.
 import joblib
 import json
 

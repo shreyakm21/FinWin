@@ -1,8 +1,14 @@
 # ml/train_category_model.py
 
 import pandas as pd
+
+#Used to save trained models
 import joblib
+
+#Converts text into numbers
 from sklearn.feature_extraction.text import TfidfVectorizer
+
+#The actual classifier.This is the ML algorithm being trained
 from sklearn.svm import LinearSVC
 
 # Load CSV

@@ -1,3 +1,4 @@
+//lib\goalEngine\evaluateGoals.ts
 import { supabaseAdmin } from "../../utils/supabaseAdmin";
 import { calculateSpentAmount } from "./spendCalculators";
 import { categorizeTransaction } from "../../utils/analytics/categorizer";

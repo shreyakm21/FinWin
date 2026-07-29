@@ -32,13 +32,13 @@ export default function CategoryPieChart({ data }: Props) {
         Expense Categories
       </h3>
 
-      <ResponsiveContainer width="100%" aspect={2}>
+      <ResponsiveContainer width="100%" height={260}>
         <PieChart>
           <Pie
             data={data}
             dataKey="amount"
             nameKey="category"
-            outerRadius={100}
+            outerRadius={90}
             label
           >
             {data.map((_, i) => (

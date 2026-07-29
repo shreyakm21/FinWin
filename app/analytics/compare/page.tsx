@@ -1,3 +1,5 @@
+// app/analytics/compare/page.tsx
+
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -24,7 +26,7 @@ async function fetchJSON(url: string, token: string | null) {
 function percentChange(prev: number, curr: number) {
   if (prev === 0 && curr === 0) return 0;
   if (prev === 0) return 100;
-  return ((curr - prev) / prev) * 100;
+  return ((curr - prev) / Math.abs(prev)) * 100;
 }
 
 function predictNextExpense(monthly: any[]) {
@@ -65,6 +67,7 @@ const AnalyticsComparePage: React.FC = () => {
   useEffect(() => {
     const load = async () => {
       try {
+        //Get logged-in user token
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -195,6 +198,7 @@ const AnalyticsComparePage: React.FC = () => {
           prev={savingsRateFrom}
           curr={savingsRateTo}
           isPercent
+          showPercentagePoints
         />
       </div>
 
@@ -297,12 +301,14 @@ function KPI({
   curr,
   inverse = false,
   isPercent = false,
+  showPercentagePoints = false,
 }: {
   title: string;
   prev: number;
   curr: number;
   inverse?: boolean;
   isPercent?: boolean;
+  showPercentagePoints?: boolean;
 }) {
   const delta = curr - prev;
   const pct = percentChange(prev, curr);
@@ -325,13 +331,21 @@ function KPI({
           : `₹${curr.toLocaleString()}`}
       </div>
 
-      <div style={{ color: good ? "green" : "red", fontSize: 14 }}>
-        {delta >= 0 ? "▲" : "▼"}{" "}
-        {isPercent
-          ? `${Math.abs(delta).toFixed(1)}%`
-          : `₹${Math.abs(delta).toLocaleString()}`}{" "}
-        ({pct.toFixed(1)}%)
-      </div>
+<div style={{ color: good ? "green" : "red", fontSize: 14 }}>
+  {delta >= 0 ? "▲" : "▼"}{" "}
+
+  {showPercentagePoints ? (
+    `${Math.abs(delta).toFixed(1)} pp`
+  ) : isPercent ? (
+    <>
+      {Math.abs(delta).toFixed(1)}% ({pct.toFixed(1)}%)
+    </>
+  ) : (
+    <>
+      ₹{Math.abs(delta).toLocaleString()} ({pct.toFixed(1)}%)
+    </>
+  )}
+</div>
     </div>
   );
 }

@@ -100,7 +100,9 @@ export async function GET(req: Request) {
  * 📈 5️⃣ Analytics computation
  */
 
+//Calculate Number of Months: Convert timestamps into Date objects
 const dates = txns.map(t => new Date(t.createdAt));
+//removes duplicates
 const months = new Set(
   dates.map(d => `${d.getFullYear()}-${d.getMonth()}`)
 ).size;
@@ -134,12 +136,15 @@ if (debitTxns.length > 0) {
 
 /* ---------- Income / Expense ---------- */
 
+//Total Income: Adds all --> Salary, Interest, Refunds, etc...
 const totalCredit = enriched
   .filter(t => t.trxtype === "credit")
   .reduce((s, t) => s + t.amount, 0);
 
+//Total Expense: Adds all debit amounts
 const totalDebit = debitTxns.reduce((s, t) => s + t.amount, 0);
 
+//Savings Rate: (Total Income - Total Expense) / Total Income * 100
 const savingsRate =
   totalCredit > 0 ? ((totalCredit - totalDebit) / totalCredit) * 100 : null;
 
@@ -154,6 +159,13 @@ if (debitTxns.length > 0) {
     date: b.createdAt.split("T")[0]
   };
 }
+/*
+{
+ "amount":65000,
+ "narration":"Laptop Purchase",
+ "date":"2026-05-10"
+}
+*/
 
 /* ---------- Weekend vs Weekday ---------- */
 
@@ -179,23 +191,159 @@ if (weekend + weekday > 0) {
         : "Balanced"
   };
 }
+/*
+{
+ "weekend":12000,
+ "weekday":5000,
+ "trend":"Weekend-heavy"
+}
+*/
 
-/* ---------- Monthly Trend ---------- */
+/* ---------- Monthly Expense Trend ---------- */
 
 const monthlyMap = new Map<string, number>();
+const monthlyCategoryMap = new Map<
+  string,
+  Map<string, number>
+>();
+
 for (const tx of debitTxns) {
-  const key = tx.createdAt.slice(0, 7);
-  monthlyMap.set(key, (monthlyMap.get(key) ?? 0) + tx.amount);
+  const month = tx.createdAt.slice(0, 7); // YYYY-MM
+
+  // Total monthly expense
+  monthlyMap.set(
+    month,
+    (monthlyMap.get(month) ?? 0) + tx.amount
+  );
+
+  // Category-wise monthly expense
+  if (!monthlyCategoryMap.has(month)) {
+    monthlyCategoryMap.set(month, new Map());
+  }
+
+  const categoryMap = monthlyCategoryMap.get(month)!;
+
+  categoryMap.set(
+    tx.category,
+    (categoryMap.get(tx.category) ?? 0) + tx.amount
+  );
 }
 
-const monthlyValues = [...monthlyMap.entries()]
-  .sort(([a], [b]) => a.localeCompare(b))
-  .map(([, v]) => v);
+const sortedMonths = [...monthlyMap.keys()].sort();
+
+const monthlyValues = sortedMonths.map(
+  month => monthlyMap.get(month) ?? 0
+);
 
 let trend = null;
-if (monthlyValues.length >= 3) {
-  const diff = monthlyValues[monthlyValues.length - 1] - monthlyValues[0];
-  trend = diff > 0 ? "Rising" : diff < 0 ? "Falling" : "Stable";
+let avgMonthlyGrowth = null;
+let explanation = null;
+let drivers: { category: string; diff: number }[] = [];
+
+const monthlyChanges: number[] = [];
+
+if (monthlyValues.length >= 2) {
+  let increases = 0;
+  let decreases = 0;
+
+  for (let i = 1; i < monthlyValues.length; i++) {
+    const previous = monthlyValues[i - 1];
+    const current = monthlyValues[i];
+
+    if (previous === 0) continue;
+
+    const growth =
+      ((current - previous) / previous) * 100;
+
+    monthlyChanges.push(
+      Number(growth.toFixed(1))
+    );
+
+    if (growth > 5) increases++;
+    else if (growth < -5) decreases++;
+  }
+
+  avgMonthlyGrowth =
+    monthlyChanges.length > 0
+      ? Number(
+          (
+            monthlyChanges.reduce(
+              (a, b) => a + b,
+              0
+            ) / monthlyChanges.length
+          ).toFixed(1)
+        )
+      : 0;
+
+  if (increases > decreases) {
+    trend =
+      avgMonthlyGrowth > 15
+        ? "Strongly Rising"
+        : "Mostly Rising";
+  } else if (decreases > increases) {
+    trend =
+      avgMonthlyGrowth < -15
+        ? "Strongly Falling"
+        : "Mostly Falling";
+  } else {
+    trend = "Fluctuating";
+  }
+
+  /* ---------- Driver Analysis ---------- */
+
+  const currentMonth =
+    sortedMonths[sortedMonths.length - 1];
+
+  const previousMonth =
+    sortedMonths[sortedMonths.length - 2];
+
+  const currentCategories =
+    monthlyCategoryMap.get(currentMonth) ??
+    new Map();
+
+  const previousCategories =
+    monthlyCategoryMap.get(previousMonth) ??
+    new Map();
+
+  const allCategories = new Set([
+    ...currentCategories.keys(),
+    ...previousCategories.keys()
+  ]);
+
+  drivers = [...allCategories]
+    .map(category => ({
+      category,
+      diff:
+        (currentCategories.get(category) ?? 0) -
+        (previousCategories.get(category) ?? 0)
+    }))
+    .sort(
+      (a, b) =>
+        Math.abs(b.diff) -
+        Math.abs(a.diff)
+    )
+    .slice(0, 2);
+
+  /* ---------- Human Explanation ---------- */
+
+  if (
+    trend.includes("Rising") &&
+    drivers.length
+  ) {
+    explanation = `Expenses increased mainly due to higher ${drivers
+      .map(d => d.category)
+      .join(" and ")} spending.`;
+  } else if (
+    trend.includes("Falling") &&
+    drivers.length
+  ) {
+    explanation = `Expenses reduced mainly due to lower ${drivers
+      .map(d => d.category)
+      .join(" and ")} spending.`;
+  } else {
+    explanation =
+      "Monthly spending remained relatively consistent.";
+  }
 }
 
 /* ---------- Unusual Transaction (Outlier) ---------- */
@@ -264,7 +412,15 @@ return NextResponse.json({
         : null,
     biggestPurchase,
     weekendVsWeekday,
-    trend,
+    trend: trend
+      ? {
+          direction: trend,
+          avgMonthlyGrowth,
+          monthlyChanges,
+          drivers,
+          explanation
+        }
+      : null,
     unusualTransaction,
     cashflowRisk,
     savingsProjection,

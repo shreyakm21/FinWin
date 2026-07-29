@@ -72,7 +72,15 @@ export default function HelpGlossaryPage() {
             style={{
               padding: 16,
               borderRadius: 12,
-              background: "#f8fafc",
+              //background: "#f8fafc",
+              background:
+                i % 4 === 0
+                  ? "#eef6ff"   // soft blue
+                  : i % 4 === 1
+                  ? "#f0fdf4"   // soft green
+                  : i % 4 === 2
+                  ? "#fff7ed"   // soft orange
+                  : "#f5f3ff",  // soft purple
               border: "1px solid #e5e7eb",
             }}
           >

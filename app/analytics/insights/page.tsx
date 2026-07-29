@@ -154,9 +154,35 @@ const InsightsAnalyticsPage: React.FC = () => {
             </li>
           )}
 
-          {insights.trend && (
-            <li>📈 Your monthly spending trend is <strong>{insights.trend}</strong>.</li>
-          )}
+{insights.trend && (
+  <li>
+    📈 Your monthly spending trend is{" "}
+    <strong>{insights.trend.direction}</strong>
+    {insights.trend.avgMonthlyGrowth !== null && (
+      <> ({insights.trend.avgMonthlyGrowth}% average monthly change)</>
+    )}
+    .
+
+    {insights.trend.explanation && (
+      <>
+        {" "}
+        {insights.trend.explanation}
+      </>
+    )}
+
+    {insights.trend.drivers?.length > 0 && (
+      <>
+        {" "}
+        Key drivers:
+        {" "}
+        {insights.trend.drivers
+          .map((d: any) => `${d.category} (${d.diff > 0 ? "+" : ""}₹${Math.abs(d.diff).toLocaleString()})`)
+          .join(", ")}
+        .
+      </>
+    )}
+  </li>
+)}
 
           {insights.unusualTransaction && (
             <li>

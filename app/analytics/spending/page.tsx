@@ -200,8 +200,17 @@ const dominantNext = predictedCategories[0] ?? null;
         <h3 style={{ marginBottom: "16px" }}>
           Spending by Category
         </h3>
-        <CategoryPieChart data={categories} />
+
+        <div
+          style={{
+            maxWidth: 420,        // 👈 controls width
+            margin: "0 auto",     // 👈 centers chart
+          }}
+        >
+          <CategoryPieChart data={categories} />
+        </div>
       </div>
+
 
       {/* Spending Heatmap */}
       {weekdaySpending && (

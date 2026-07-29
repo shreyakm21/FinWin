@@ -1,6 +1,12 @@
 // utils/analytics/categorizer.ts
 
 import modelData from "./category_model.json";
+//category_model.json is the exported representation of our trained 
+// TF-IDF + Linear SVM transaction categorization model. 
+// It stores the vocabulary, IDF values, category labels, SVM weights, and biases, 
+// allowing transaction category prediction directly inside the Next.js TypeScript application 
+// without requiring a separate Python inference service.
+
 import { categorizeTransactionSemantic } from "./semanticCategorizer";
 
 /* ---------------- In-Memory Cache ---------------- */
@@ -38,7 +44,24 @@ const MERCHANT_RULES: [string, string[]][] = [
     ],
   ],
   ["Travel & Commute", ["uber", "ola", "rapido", "metro", "bus", "train"]],
-  ["Entertainment", ["netflix", "spotify", "prime", "hotstar", "movie"]],
+  [
+  "Entertainment",
+  [
+    "netflix",
+    "spotify",
+    "prime",
+    "hotstar",
+    "movie",
+    "cinema",
+    "tickets",
+    "park",
+    "club",
+    "party",
+    "concert",
+    "show",
+    "gaming",
+  ],
+],
   ["Shopping", ["amazon", "flipkart", "myntra", "zara"]],
   ["Bills & Utilities", ["electricity", "water bill", "gas bill", "wifi", "broadband"]],
   ["Recharge/Topup", ["recharge", "topup", "dth", "prepaid", "postpaid"]],

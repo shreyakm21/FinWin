@@ -1,4 +1,5 @@
 // app/analytics/components/InsightCards.tsx
+
 import InsightCard from "./InsightCard";
 
 export default function InsightCards({ insights }: any) {
@@ -13,7 +14,6 @@ export default function InsightCards({ insights }: any) {
     cashflowRisk,
     behaviour
   } = insights ?? {};
-
 
   return (
     <div
@@ -71,7 +71,9 @@ export default function InsightCards({ insights }: any) {
           savingsProjection
             ? savingsProjection.expectedSavings >= 0
               ? `Expected savings ₹${savingsProjection.expectedSavings.toLocaleString()}`
-              : `Possible deficit ₹${Math.abs(savingsProjection.expectedSavings).toLocaleString()}`
+              : `Possible deficit ₹${Math.abs(
+                  savingsProjection.expectedSavings
+                ).toLocaleString()}`
             : "Based on recent spending pattern"
         }
       />
@@ -80,8 +82,30 @@ export default function InsightCards({ insights }: any) {
       {trend && (
         <InsightCard
           title="Spending Trend"
-          content={trend}
-          subtext="Based on recent monthly expenses"
+content={`${trend.direction}${
+  trend.avgMonthlyGrowth !== null
+    ? ` ${
+        trend.avgMonthlyGrowth > 0
+          ? `📈 +${trend.avgMonthlyGrowth}%`
+          : trend.avgMonthlyGrowth < 0
+          ? `📉 ${trend.avgMonthlyGrowth}%`
+          : `➖ 0%`
+      }`
+    : ""
+}`}
+          subtext={`${trend.explanation ?? ""}
+${
+  trend.drivers?.length
+    ? `Top drivers: ${trend.drivers
+        .map(
+          (d: any) =>
+            `${d.category} (${
+  d.diff > 0 ? "+" : "-"
+}₹${Math.abs(d.diff).toLocaleString()})`
+        )
+        .join(", ")}`
+    : ""
+}`}
         />
       )}
 
@@ -120,8 +144,6 @@ export default function InsightCards({ insights }: any) {
           subtext={`${unusualTransaction.narration} • ${unusualTransaction.date}`}
         />
       )}
-
-
     </div>
   );
 }
