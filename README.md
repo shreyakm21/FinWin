@@ -239,18 +239,6 @@ git clone https://github.com/shreyakm21/FinWin.git
 npm install
 ```
 
-## Configure Environment
-
-Create a `.env.local` file and add:
-
-```env
-DATABASE_URL=
-DIRECT_URL=
-
-SUPABASE_URL=
-SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-```
 
 ## Run Application
 
@@ -264,13 +252,14 @@ npm run dev
 
 > Add screenshots here
 
-- Login
 - Dashboard
+  ![dashboard](dashboard.jpg)
 - Analytics Overview
+  ![main](mainA.jpeg)
 - Spending Analytics
-- Insights
-- Compare Analytics
-- Transaction History
+  ![spending](spendingA.jpeg)
+- Goal Violation
+  ![goalViolate](goalViolate.png)
 
 ---
 
@@ -289,9 +278,9 @@ npm run dev
 
 # 👩‍💻 Authors
 
-**Shreya Mamadapur**
-**Snehal Jadhav**
-**Rutuja Hulge**
+**Shreya Mamadapur**\
+**Snehal Jadhav**\
+**Rutuja Hulge**\
 **Sakshi Jagadale**
 
 B.E. Information Technology
