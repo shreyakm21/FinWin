@@ -1,486 +1,252 @@
-"use client";
+'use client';
 
-import React, { useEffect } from "react";
-// 1. Static import for Bootstrap JS is mandatory for toggler functionality.
-import "bootstrap/dist/js/bootstrap.bundle.min.js"; 
+import React, { useEffect, useState } from 'react';
 
 const Page: React.FC = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   useEffect(() => {
-    document.title = "FinWin — Bank Smarter. Live Better.";
+    document.title = 'FinWin — Bank Smarter. Live Better.';
   }, []);
 
   return (
-    <>
-      {/* Loading CSS directly ensures immediate style application */}
-      <link 
-        rel="stylesheet" 
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" 
-      />
-      <link 
-        rel="stylesheet" 
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" 
-      />
-      <link 
-        rel="stylesheet" 
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" 
-      />
-
-      {/* Global styles (UPDATED for button size/shape) */}
-      <style jsx global>{`
-        :root {
-          --navy: #00277aff;
-          --dark-navy:  #00277aff; 
-          --hero-bg: #eef6ff;
-          --muted: #6b7280;
-          --card-border: #eef2f7;
-          --soft-bg: #fbfbfd;
-          --radius: 14px;
-        }
-
-        body {
-          font-family: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto,
-            "Helvetica Neue", Arial;
-          color:  #00277aff;
-          background: #ffffff;
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-          margin: 0;
-        }
-
-        /* NAV */
-        .navbar {
-          padding: 20px 0;
-          background: #ffffff;
-        }
-        .navbar-brand {
-          font-weight: 700;
-          color: var(--navy);
-          display: flex;
-          gap: 0.6rem;
-          align-items: center;
-        }
-        .brand-mark {
-          width: 34px;
-          height: 34px;
-          border-radius: 8px;
-          background: linear-gradient(135deg, #1a4ea1, #00277aff);
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          color: #fff;
-          font-weight: 700;
-          font-size: 18px;
-          box-shadow: 0 2px 6px rgba(12, 34, 80, 0.12);
-        }
-        .navbar .nav-link {
-          color: #111827;
-          font-weight: 500;
-        }
-        
-        /* UPDATED: ALL NAV BUTTONS use the larger, rounded style */
-        .navbar .btn {
-          border-radius: 12px; /* Adopted from Hero CTA */
-          padding: 10px 18px;   /* Adopted from Hero CTA */
-          font-weight: 600;
-        }
-        
-        /* SIGN UP BUTTON */
-        .btn-signup {
-          background: var(--dark-navy);
-          color: #fff;
-          border: none;
-          box-shadow: none;
-        }
-        
-        /* LOGIN BUTTON */
-        .btn-outline-custom {
-          background: #fff;
-          color: var(--dark-navy);
-          border: 1px solid rgba(11, 35, 64, 0.2);
-        }
-
-        /* HERO */
-        .hero {
-          background: var(--hero-bg);
-          padding: 64px 0 72px;
-        }
-        .hero h1 {
-          font-size: clamp(30px, 6vw, 56px);
-          line-height: 1.02;
-          font-weight: 800;
-          margin: 0 0 18px 0;
-          color: #00277aff;
-        }
-        .hero p.lead {
-          color: var(--muted);
-          font-size: 15px;
-          margin-bottom: 22px;
-          max-width: 520px;
-        }
-        /* No change needed here, as .navbar .btn now controls padding/radius */
-        .hero .cta-group .btn {
-          border-radius: 12px;
-          padding: 10px 18px;
-        }
-        .hero .hero-img {
-          background: #fff;
-          border-radius: 8px;
-          padding: 12px;
-          display: inline-block;
-          box-shadow: 0 6px 20px rgba(8, 20, 44, 0.06);
-        }
-        .hero .hero-img img {
-          display: block;
-          width: 100%;
-          height: auto;
-          border-radius: 6px;
-        }
-
-        /* KEY FEATURES */
-        .features {
-          padding: 56px 0;
-        }
-        .features h2 {
-          font-weight: 700;
-          margin-bottom: 28px;
-          color:  #00277aff;
-        }
-        .feature-card {
-          background: #fff;
-          border: 1px solid var(--card-border);
-          border-radius: var(--radius);
-          padding: 28px;
-          min-height: 170px;
-          text-align: center;
-        }
-        .feature-card .icon {
-          width: 56px;
-          height: 56px;
-          border-radius: 12px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 12px;
-          background: linear-gradient(180deg, #fff, #f6f9ff);
-          border: 1px solid rgba(15, 43, 90, 0.06);
-          color: var(--navy);
-          font-size: 22px;
-        }
-        .feature-card h5 {
-          margin-bottom: 8px;
-          font-weight: 700;
-        }
-        .feature-card p {
-          color: var(--muted);
-          font-size: 13px;
-          margin: 0;
-        }
-
-        /* MISSION */
-        .mission {
-          background: var(--soft-bg);
-          padding: 52px 0;
-        }
-        .customer-number {
-          font-weight: 800;
-          font-size: 48px;
-          color: var(--navy);
-        }
-        .mission .small-logos {
-          opacity: 0.45;
-          margin-top: 18px;
-          display: flex;
-          gap: 18px;
-          align-items: center;
-          justify-content: center;
-        }
-
-        /* TESTIMONIALS */
-        .testimonials {
-          padding: 56px 0;
-        }
-        .testimonial {
-          background: #fff;
-          border-radius: 12px;
-          border: 1px solid #eef2f7;
-          padding: 22px;
-          min-height: 140px;
-          font-style: italic;
-        }
-        .testimonial .meta {
-          margin-top: 14px;
-          font-style: normal;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          overflow: hidden;
-          display: inline-block;
-          background: #e6eefc;
-          flex: 0 0 40px;
-          border: 2px solid #fff;
-        }
-        .testimonial .name {
-          font-weight: 700;
-          color:  #00277aff;
-          font-size: 14px;
-        }
-        .testimonial .role {
-          font-size: 12px;
-          color: var(--muted);
-        }
-
-        /* FOOTER */
-        footer {
-          padding: 26px 0;
-          border-top: 1px solid #f1f3f7;
-          color: var(--muted);
-          font-size: 13px;
-        }
-
-        /* Responsive tweaks */
-        @media (max-width: 767.98px) {
-          .hero {
-            padding: 36px 0 48px;
-          }
-          .navbar .nav-link {
-            padding: 0.25rem 0.5rem;
-          }
-          .mission .customer-number {
-            font-size: 36px;
-            text-align: center;
-          }
-          .mission .small-logos {
-            justify-content: flex-start;
-          }
-        }
-      `}</style>
-
-      {/* NAV */}
-      <nav className="navbar navbar-expand-lg">
-        <div className="container">
-          <a className="navbar-brand" href="#">
-            <span className="brand-mark">FW</span>
-            <span style={{ fontSize: 18 }}>FinWin</span>
-          </a>
-
-          <button
-            className="navbar-toggler"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navMenu"
-            aria-controls="navMenu"
-            aria-expanded="false"
-            aria-label="Toggle navigation"
-          >
-            <span className="navbar-toggler-icon" />
-          </button>
-
-          {/* FIX APPLIED: Uses 'd-block' for forced visibility across all sizes */}
-          <div className="navbar-collapse d-block" id="navMenu">
-            <ul className="navbar-nav mx-auto mb-2 mb-lg-0">
-              <li className="nav-item">
-                <a className="nav-link active" href="#">
-                  Home
-                </a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="#">
-                  Features
-                </a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="#">
-                  About Us
-                </a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="#">
-                  Contact
-                </a>
-              </li>
-            </ul>
-
-            <div className="d-flex align-items-center">
-              {/* These buttons now use the larger, rounded style */}
-             <a href="/login" > <button className="btn btn-primary me-3"
-                  style={{ background: "var(--dark-navy)", border: "none" }} >Login</button></a>
-             <a href="/signup"> <button className="btn btn-primary"
-                  style={{ background: "var(--dark-navy)", border: "none" }} >Sign Up</button> </a>
+    <div className="min-h-screen bg-white font-sans">
+      {/* NAVBAR */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-slate-200/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center shadow-lg shadow-blue-600/30">
+                <span className="text-white font-bold text-lg">FW</span>
+              </div>
+              <span className="text-xl font-bold text-slate-900">FinWin</span>
             </div>
+
+            {/* Desktop Menu */}
+            <div className="hidden md:flex items-center gap-8">
+              <a href="#" className="text-slate-600 hover:text-slate-900 font-medium transition">Home</a>
+              <a href="#" className="text-slate-600 hover:text-slate-900 font-medium transition">Features</a>
+              <a href="#" className="text-slate-600 hover:text-slate-900 font-medium transition">About Us</a>
+              <a href="#" className="text-slate-600 hover:text-slate-900 font-medium transition">Contact</a>
+            </div>
+
+            {/* Desktop Buttons */}
+            <div className="hidden md:flex items-center gap-3">
+              <a href="/login">
+                <button className="px-6 py-2.5 text-slate-900 font-semibold rounded-full border border-slate-300 hover:bg-slate-50 transition">
+                  Login
+                </button>
+              </a>
+              <a href="/signup">
+                <button className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-full hover:from-blue-700 hover:to-blue-800 transition shadow-lg shadow-blue-600/30">
+                  Sign Up
+                </button>
+              </a>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="md:hidden p-2 hover:bg-slate-100 rounded-lg transition"
+            >
+              <svg className="w-6 h-6 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
           </div>
+
+          {/* Mobile Menu */}
+          {isMenuOpen && (
+            <div className="md:hidden border-t border-slate-200 py-4 space-y-3">
+              <a href="#" className="block text-slate-600 hover:text-slate-900 font-medium">Home</a>
+              <a href="#" className="block text-slate-600 hover:text-slate-900 font-medium">Features</a>
+              <a href="#" className="block text-slate-600 hover:text-slate-900 font-medium">About Us</a>
+              <a href="#" className="block text-slate-600 hover:text-slate-900 font-medium">Contact</a>
+              <div className="flex gap-2 pt-3">
+                <a href="/login" className="flex-1">
+                  <button className="w-full px-4 py-2 text-slate-900 font-semibold rounded-full border border-slate-300">
+                    Login
+                  </button>
+                </a>
+                <a href="/signup" className="flex-1">
+                  <button className="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-full">
+                    Sign Up
+                  </button>
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
-      {/* HERO */}
-      <header className="hero">
-        <div className="container">
-          <div className="row align-items-center gy-4">
-            <div className="col-md-6 order-2 order-md-1">
-              <h1>Bank Smarter. Live Better.</h1>
-              <p className="lead">
-                Experience seamless financial management with BankApp. Secure,
-                intuitive, and designed for your peace of mind.
+      {/* HERO SECTION */}
+      <section className="bg-gradient-to-b from-blue-50 to-white py-16 md:py-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+            {/* Hero Content */}
+            <div>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+                Bank Smarter. Live Better.
+              </h1>
+              <p className="text-lg text-slate-600 mb-8 leading-relaxed max-w-lg">
+                Experience seamless financial management with FinWin. Secure, intuitive, and designed for your peace of mind.
               </p>
-
-              <div className="d-flex gap-2 cta-group">
-                <button
-                  className="btn btn-primary"
-                  style={{ background: "var(--dark-navy)", border: "none" }} 
-                >
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-full hover:from-blue-700 hover:to-blue-800 transition shadow-lg shadow-blue-600/30">
                   Get Started
                 </button>
-                <button className="btn btn-outline-custom">Learn More</button>
+                <button className="px-8 py-3 text-blue-600 font-semibold rounded-full border-2 border-blue-600 hover:bg-blue-50 transition">
+                  Learn More
+                </button>
               </div>
             </div>
 
-            <div className="col-md-6 text-md-end order-1 order-md-2 d-flex justify-content-md-end">
-              <div className="hero-img" style={{ maxWidth: 520, width: "100%" }}>
-                {/* Replace src with your own image path if needed */}
+            {/* Hero Image */}
+            <div className="flex justify-center md:justify-end">
+              <div className="w-full max-w-md">
+                <div className="bg-white rounded-2xl p-4 shadow-2xl shadow-slate-200/50">
+                  <img
+                    src="/mnt/data/5bdc298c-0593-4c97-8a9a-d7c8477f87da.png"
+                    alt="Hero image"
+                    className="w-full h-auto rounded-xl"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES SECTION */}
+      <section className="py-16 md:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+              Key Features
+            </h2>
+            <p className="text-slate-600 text-lg">Everything you need for modern banking</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Feature 1 */}
+            <div className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-2xl p-8 hover:shadow-xl transition">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-50 rounded-xl flex items-center justify-center mb-6 border border-blue-200">
+                <svg className="w-7 h-7 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">Secure Transactions</h3>
+              <p className="text-slate-600 leading-relaxed">
+                Your financial data is protected with state-of-the-art encryption and fraud prevention.
+              </p>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-2xl p-8 hover:shadow-xl transition">
+              <div className="w-14 h-14 bg-gradient-to-br from-purple-100 to-purple-50 rounded-xl flex items-center justify-center mb-6 border border-purple-200">
+                <svg className="w-7 h-7 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">24/7 Access</h3>
+              <p className="text-slate-600 leading-relaxed">
+                Manage your accounts anytime, anywhere with our intuitive mobile app and online banking.
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-2xl p-8 hover:shadow-xl transition">
+              <div className="w-14 h-14 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-xl flex items-center justify-center mb-6 border border-emerald-200">
+                <svg className="w-7 h-7 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">Personal Finance Insights</h3>
+              <p className="text-slate-600 leading-relaxed">
+                Gain a clear understanding of your spending habits with personalized reports and budgeting tools.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* MISSION SECTION */}
+      <section className="py-16 md:py-24 bg-slate-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+              Our Mission & Commitment
+            </h2>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-8 md:p-12 shadow-lg">
+            <p className="text-lg text-slate-600 leading-relaxed mb-6">
+              At FinWin, we are dedicated to empowering individuals and businesses with innovative and reliable financial solutions. Our mission is to simplify banking, making it accessible, secure, and insightful for everyone.
+            </p>
+            <p className="text-lg text-slate-700 italic font-medium mb-8">
+              We believe in transparency, integrity, and putting our customers first in every decision we make.
+            </p>
+            
+            <div className="text-center py-8 border-t border-slate-200">
+              <div className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                1M+
+              </div>
+              <p className="text-slate-600 font-semibold">Satisfied Customers</p>
+            </div>
+
+            <div className="flex justify-center gap-6 mt-8 pt-8 border-t border-slate-200">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-200 to-blue-100" />
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-200 to-purple-100" />
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-200 to-pink-100" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS SECTION */}
+      <section className="py-16 md:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+              What Our Customers Say
+            </h2>
+            <p className="text-slate-600 text-lg">Join thousands of satisfied users</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Testimonial 1 */}
+            <div className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-2xl p-8">
+              <p className="text-slate-700 mb-6 leading-relaxed italic">
+                "FinWin has transformed how I manage my finances. The insights are incredibly helpful, and the support is top-notch!"
+              </p>
+              <div className="flex items-center gap-4">
                 <img
-                  src="/mnt/data/5bdc298c-0593-4c97-8a9a-d7c8477f87da.png"
-                  alt="Hero image"
+                  src="https://i.pravatar.cc/80?img=12"
+                  alt="Sarah"
+                  className="w-12 h-12 rounded-full object-cover"
                 />
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* FEATURES */}
-      <section className="features">
-        <div className="container text-center">
-          <h2>Key Features</h2>
-
-          <div className="row gx-4 gy-4 justify-content-center mt-3">
-            <div className="col-md-4">
-              <div className="feature-card">
-                <div className="icon mb-2">
-                  <i className="bi bi-shield-lock-fill" />
-                </div>
-                <h5>Secure Transactions</h5>
-                <p>
-                  Your financial data is protected with state-of-the-art
-                  encryption and fraud prevention.
-                </p>
-              </div>
-            </div>
-
-            <div className="col-md-4">
-              <div className="feature-card">
-                <div className="icon mb-2">
-                  <i className="bi bi-clock-history" />
-                </div>
-                <h5>24/7 Access</h5>
-                <p>
-                  Manage your accounts anytime, anywhere with our intuitive
-                  mobile app and online banking.
-                </p>
-              </div>
-            </div>
-
-            <div className="col-md-4">
-              <div className="feature-card">
-                <div className="icon mb-2">
-                  <i className="bi bi-pie-chart-fill" />
-                </div>
-                <h5>Personal Finance Insights</h5>
-                <p>
-                  Gain a clear understanding of your spending habits with
-                  personalized reports and budgeting tools.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* MISSION */}
-      <section className="mission text-center">
-        <div className="container">
-          <h2
-            className="mb-5"
-            style={{ fontWeight: 800, color: " #00277aff" }}
-          >
-            Our Mission & Commitment
-          </h2>
-
-          <div className="row g-4 justify-content-center">
-            <div className="col-md-8">
-              <div className="feature-card">
-                <p style={{ color: "#5f697eff", lineHeight: 1.7, marginBottom: 18 }}>
-                  At BankApp, we are dedicated to empowering individuals and
-                  businesses with innovative and reliable financial solutions.
-                  Our mission is to simplify banking, making it accessible,
-                  secure, and insightful for everyone.
-                </p>
-                <p style={{ fontStyle: "italic", fontWeight: 500, color: "#374151" }}>
-                  We believe in transparency, integrity, and putting our
-                  customers first in every decision we make.
-                </p>
-                <div className="mt-4">
-                  <div className="customer-number">1M+</div>
-                  <div style={{ fontWeight: 600, color: " #00277aff" }}>
-                    Satisfied Customers
-                  </div>
-                </div>
-                <div className="small-logos mt-4 justify-content-center">
-                  <svg width="26" height="18" viewBox="0 0 26 18" xmlns="http://www.w3.org/2000/svg"><path d="M1 17L13 1L25 17H1Z" fill="#bfcde9"/></svg>
-                  <svg width="26" height="18" viewBox="0 0 26 18" xmlns="http://www.w3.org/2000/svg"><path d="M13 1L25 17H1L13 1Z" fill="#cbd8ef"/></svg>
-                  <svg width="26" height="18" viewBox="0 0 26 18" xmlns="http://www.w3.org/2000/svg"><circle cx="13" cy="9" r="7" fill="#dfe9f8"/></svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* TESTIMONIALS */}
-      <section className="testimonials">
-        <div className="container">
-          <div className="text-center">
-            <h2>What Our Customers Say</h2>
-          </div>
-
-          <div className="row gx-4 gy-4 mt-4 justify-content-center">
-            <div className="col-md-6">
-              <div className="testimonial">
                 <div>
-                  "BankApp has transformed how I manage my finances. The
-                  insights are incredibly helpful, and the support is top-notch!"
-                </div>
-
-                <div className="meta">
-                  <div className="avatar">
-                    <img src="https://i.pravatar.cc/80?img=12" alt="Sarah" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  </div>
-                  <div>
-                    <div className="name">Sarah Chen</div>
-                    <div className="role">Small Business Owner</div>
-                  </div>
+                  <p className="font-bold text-slate-900">Sarah Chen</p>
+                  <p className="text-sm text-slate-600">Small Business Owner</p>
                 </div>
               </div>
             </div>
 
-            <div className="col-md-6">
-              <div className="testimonial">
+            {/* Testimonial 2 */}
+            <div className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-2xl p-8">
+              <p className="text-slate-700 mb-6 leading-relaxed italic">
+                "Switching to FinWin was the best decision for our family's budgeting. Secure and so easy to use!"
+              </p>
+              <div className="flex items-center gap-4">
+                <img
+                  src="https://i.pravatar.cc/80?img=5"
+                  alt="Michael"
+                  className="w-12 h-12 rounded-full object-cover"
+                />
                 <div>
-                  "Switching to BankApp was the best decision for our family's
-                  budgeting. Secure and so easy to use!"
-                </div>
-
-                <div className="meta">
-                  <div className="avatar">
-                    <img src="https://i.pravatar.cc/80?img=5" alt="Michael" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  </div>
-                  <div>
-                    <div className="name">Michael Johnson</div>
-                    <div className="role">Project Manager</div>
-                  </div>
+                  <p className="font-bold text-slate-900">Michael Johnson</p>
+                  <p className="text-sm text-slate-600">Project Manager</p>
                 </div>
               </div>
             </div>
@@ -489,21 +255,37 @@ const Page: React.FC = () => {
       </section>
 
       {/* FOOTER */}
-      <footer>
-        <div className="container d-flex flex-column flex-md-row justify-content-between align-items-center">
-          <div className="mb-3 mb-md-0">
-            <strong>Company</strong> &nbsp;&nbsp; Support &nbsp;&nbsp; Legal
+      <footer className="bg-slate-900 text-slate-400 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-8 pb-8 border-b border-slate-800">
+            <div className="space-x-6">
+              <a href="#" className="hover:text-white transition">Company</a>
+              <a href="#" className="hover:text-white transition">Support</a>
+              <a href="#" className="hover:text-white transition">Legal</a>
+            </div>
+
+            <div className="flex gap-4">
+              <a href="#" className="hover:text-white transition">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+              </a>
+              <a href="#" className="hover:text-white transition">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 002.856-3.51 10.02 10.02 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" /></svg>
+              </a>
+              <a href="#" className="hover:text-white transition">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm4.441 16.892c-2.102.144-6.784.144-8.883 0C5.282 16.736 5.017 15.622 5 12c.017-3.629.285-4.736 2.558-4.892 2.099-.144 6.782-.144 8.883 0C18.718 7.264 18.982 8.378 19 12c-.018 3.629-.285 4.736-2.559 4.892zM9.5 15.5v-7l5.5 3.5-5.5 3.5z" /></svg>
+              </a>
+              <a href="#" className="hover:text-white transition">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.475-2.236-1.986-2.236-1.081 0-1.722.722-2.002 1.413-.103.25-.129.599-.129.948v5.444h-3.554s.05-8.736 0-9.646h3.554v1.364c.429-.659 1.191-1.595 2.897-1.595 2.117 0 3.704 1.385 3.704 4.362v5.515zM5.337 8.855c-1.144 0-1.915-.758-1.915-1.708 0-.951.77-1.708 1.957-1.708 1.187 0 1.914.757 1.937 1.708 0 .95-.75 1.708-1.979 1.708zm1.682 11.597H3.617V9.021h3.402v11.431zM22.224 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.224 0z" /></svg>
+              </a>
+            </div>
           </div>
 
-          <div className="d-flex gap-3">
-            <a href="#" className="text-muted fs-5"><i className="bi bi-facebook" /></a>
-            <a href="#" className="text-muted fs-5"><i className="bi bi-instagram" /></a>
-            <a href="#" className="text-muted fs-5"><i className="bi bi-twitter" /></a>
-            <a href="#" className="text-muted fs-5"><i className="bi bi-linkedin" /></a>
+          <div className="text-center mt-8 text-sm">
+            <p>&copy; 2024 FinWin. All rights reserved.</p>
           </div>
         </div>
       </footer>
-    </>
+    </div>
   );
 };
 

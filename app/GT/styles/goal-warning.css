@@ -1,0 +1,97 @@
+/* Goal Warning Modal Styles */
+
+.gt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65); /* darker, premium backdrop */
+  backdrop-filter: blur(6px);       /* glass blur effect */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.gt-modal {
+  background: linear-gradient(135deg, #0f172a, #1e293b); /* slate gradient */
+  color: #e2e8f0;
+  width: 520px;
+  max-width: 90%;
+  border-radius: 16px;
+  padding: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  position: relative;
+}
+
+.gt-modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #f87171; /* red accent for alert */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gt-modal-subtitle {
+  margin-top: 10px;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.gt-violations {
+  margin-top: 20px;
+}
+
+.gt-violation-card {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+  background: rgba(30, 41, 59, 0.6);
+  transition: box-shadow 0.3s ease;
+}
+
+.gt-violation-card:hover {
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4); /* indigo glow */
+}
+
+.gt-exceeded {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.gt-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.transaction-btn-secondary {
+  background: transparent;
+  border: 1px solid #64748b;
+  color: #e2e8f0;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.transaction-btn-secondary:hover {
+  background: #334155;
+}
+
+.transaction-btn-primary {
+  background: linear-gradient(90deg, #6366f1, #06b6d4, #a855f7);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: box-shadow 0.3s ease;
+}
+
+.transaction-btn-primary:hover {
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.6);
+}
